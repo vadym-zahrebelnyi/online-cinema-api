@@ -20,6 +20,5 @@ class Settings(BaseSettings):
 
     REDIS_HOST: str
     REDIS_PORT: int
-    DATABASE_URL: str
 
 settings = Settings()
