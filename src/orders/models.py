@@ -41,7 +41,7 @@ class OrderDB(Base):
     total_amount: Mapped[Decimal] = mapped_column(
         Numeric(10, 2),
         nullable=False,
-    ) #TODO hybrid property or dynamic calculation
+    )  # TODO hybrid property or dynamic calculation
 
     user = relationship("UserDB", back_populates="orders")
 
@@ -52,7 +52,7 @@ class OrderDB(Base):
         lazy="selectin",
     )
 
-    payments = relationship("PaymentDB", back_populates="order", lazy="selectin")
+    payments = relationship("PaymentDB", back_populates="order")
 
 
 class OrderItemDB(Base):
