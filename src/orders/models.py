@@ -18,7 +18,7 @@ class OrderStatusEnum(str, Enum):
 class OrderDB(Base):
     __tablename__ = "orders"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
 
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -60,7 +60,7 @@ class OrderItemDB(Base):
 
     __table_args__ = (UniqueConstraint("order_id", "movie_id", name="uix_order_movie"),)
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
 
     order_id: Mapped[int] = mapped_column(
         ForeignKey("orders.id", ondelete="CASCADE"),
