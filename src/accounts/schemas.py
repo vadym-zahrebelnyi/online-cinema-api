@@ -1,17 +1,19 @@
-from pydantic import BaseModel, EmailStr, Field, field_validator
-from datetime import datetime, date
+from datetime import date, datetime
 from typing import Optional
-from src.accounts.models import UserGroupEnum, GenderEnum
+
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+from src.accounts.models import GenderEnum, UserGroupEnum
 from src.accounts.validators import validate_password_strength
 
 
 class BaseEmailPasswordSchema(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8, description="Password must be at least 8 characters")
+    password: str = Field(
+        min_length=8, description="Password must be at least 8 characters"
+    )
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
     @field_validator("email")
     @classmethod
@@ -32,11 +34,12 @@ class RegisterRequest(BaseEmailPasswordSchema):
 class RegisterResponse(BaseModel):
     id: int
     email: EmailStr
-    message: str = "Registration successful. Please check your email to activate your account."
+    message: str = (
+        "Registration successful. Please check your email to activate your account."
+    )
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
+
 
 # TODO: OCA-31 - Чекає на Celery
 class ActivateAccountRequest(BaseModel):
@@ -54,6 +57,7 @@ class ResendActivationRequest(BaseModel):
 
 class LoginRequest(BaseEmailPasswordSchema):
     pass
+
 
 # TODO: Чекає на логіку JWT
 class TokenPair(BaseModel):
@@ -115,9 +119,7 @@ class UserProfileResponse(BaseModel):
     date_of_birth: Optional[date] = None
     info: Optional[str] = None
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class UserResponse(BaseModel):
@@ -128,9 +130,7 @@ class UserResponse(BaseModel):
     created_at: datetime
     profile: Optional[UserProfileResponse] = None
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class MessageResponse(BaseModel):
