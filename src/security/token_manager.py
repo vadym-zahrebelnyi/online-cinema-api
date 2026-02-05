@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from jose import jwt, JWTError, ExpiredSignatureError
+from jose import ExpiredSignatureError, JWTError, jwt
 
-from src.exceptions import TokenExpiredError, InvalidTokenError
+from src.exceptions import InvalidTokenError, TokenExpiredError
 from src.security.interfaces import JWTAuthManagerInterface
 
 
@@ -25,7 +25,9 @@ class JWTAuthManager(JWTAuthManagerInterface):
         self._secret_key_refresh = secret_key_refresh
         self._algorithm = algorithm
 
-    def _create_token(self, data: dict, secret_key: str, expires_delta: timedelta) -> str:
+    def _create_token(
+        self, data: dict, secret_key: str, expires_delta: timedelta
+    ) -> str:
         to_encode = data.copy()
         expire = datetime.now(timezone.utc) + expires_delta
         to_encode.update({"exp": expire})
