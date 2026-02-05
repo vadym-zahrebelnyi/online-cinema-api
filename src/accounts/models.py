@@ -1,5 +1,6 @@
 import enum
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Boolean,
@@ -19,6 +20,9 @@ from sqlalchemy.orm import (
 from sqlalchemy.sql.functions import func
 
 from src.database import Base
+
+if TYPE_CHECKING:
+    from src.payments.models import PaymentDB
 
 
 class UserGroupEnum(str, enum.Enum):
@@ -67,6 +71,10 @@ class UserDB(Base):
 
     group_id: Mapped[int] = mapped_column(ForeignKey("user_groups.id"), nullable=False)
     group: Mapped["UserGroupDB"] = relationship(back_populates="users")
+
+    payments: Mapped[list["PaymentDB"]] = relationship(
+        "PaymentDB", back_populates="user"
+    )
 
     profile: Mapped["UserProfileDB"] = relationship(
         back_populates="user",

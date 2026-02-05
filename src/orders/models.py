@@ -52,7 +52,7 @@ class OrderDB(Base):
         lazy="selectin",
     )
 
-    payments = relationship("PaymentDB", back_populates="order", lazy="selectin")
+    payments = relationship("PaymentDB", back_populates="order")
 
 
 class OrderItemDB(Base):
