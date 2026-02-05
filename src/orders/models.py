@@ -38,10 +38,10 @@ class OrderDB(Base):
         nullable=False,
     )
 
-    total_amount: Mapped[Decimal | None] = mapped_column(
+    total_amount: Mapped[Decimal] = mapped_column(
         Numeric(10, 2),
         nullable=False,
-    )
+    ) #TODO hybrid property or dynamic calculation
 
     user = relationship("UserDB", back_populates="orders")
 
