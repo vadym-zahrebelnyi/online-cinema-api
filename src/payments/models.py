@@ -1,22 +1,28 @@
 import enum
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import (
+    DECIMAL,
     CheckConstraint,
+    DateTime,
     ForeignKey,
     Index,
     String,
-    DECIMAL,
-    DateTime,
     UniqueConstraint,
     func,
+)
+from sqlalchemy import (
     Enum as SQLEnum,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
+
+if TYPE_CHECKING:
+    from src.accounts.models import UserDB
+    from src.orders.models import OrderDB, OrderItemDB
 
 
 class PaymentStatusEnum(str, enum.Enum):
