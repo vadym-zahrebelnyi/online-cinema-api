@@ -3,13 +3,13 @@ from decimal import Decimal
 from typing import List, Optional
 
 from sqlalchemy import (
-    String,
-    Text,
+    Column,
     ForeignKey,
     Numeric,
-    UniqueConstraint,
+    String,
     Table,
-    Column,
+    Text,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import (
@@ -19,7 +19,6 @@ from sqlalchemy.orm import (
 )
 
 from src.database import Base
-
 
 movie_genres = Table(
     "movie_genres",
