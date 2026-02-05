@@ -1,7 +1,7 @@
 import enum
 
-from sqlalchemy import Integer, Enum
-from sqlalchemy.orm import mapped_column, Mapped
+from sqlalchemy import Enum, Integer
+from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database import Base
 
