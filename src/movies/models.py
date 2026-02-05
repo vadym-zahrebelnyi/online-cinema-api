@@ -95,6 +95,9 @@ class DirectorDB(Base):
 
 class MovieDB(Base):
     __tablename__ = "movies"
+    __table_args__ = (
+        UniqueConstraint("name", "year", "time", name="uq_movie_identity"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -147,6 +150,12 @@ class MovieDB(Base):
         lazy="selectin",
     )
 
-    __table_args__ = (
-        UniqueConstraint("name", "year", "time", name="uq_movie_identity"),
+    cart_items: Mapped[list["CartItemDB"]] = relationship(
+        back_populates="movie",
+        cascade="all, delete-orphan",
+    )
+
+    order_items: Mapped[list["OrderItemDB"]] = relationship(
+        back_populates="movie",
+        cascade="all, delete-orphan",
     )

@@ -82,3 +82,7 @@ class OrderItemDB(Base):
     order = relationship("OrderDB", back_populates="items")
 
     movie = relationship("MovieDB", lazy="joined")
+    payment_items: Mapped[list["PaymentItemDB"]] = relationship(
+        back_populates="order_item",
+        cascade="all, delete-orphan",
+    )
