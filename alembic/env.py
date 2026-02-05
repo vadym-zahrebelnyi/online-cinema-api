@@ -7,8 +7,22 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
+from src.core import settings
+from src.database import Base, POSTGRESQL_DATABASE_URL
+
+
 # import all models !!!!!!!!!!!!!
-from src.database import POSTGRESQL_DATABASE_URL, Base
+from src.accounts.models import (
+    UserDB,
+    UserProfileDB,
+    UserGroupDB,
+    ActivationTokenDB,
+    PasswordResetTokenDB,
+    RefreshTokenDB,
+    UserGroupEnum,
+    GenderEnum
+) # noqa
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -20,7 +34,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 
-config.set_main_option("sqlalchemy.url", POSTGRESQL_DATABASE_URL)
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel

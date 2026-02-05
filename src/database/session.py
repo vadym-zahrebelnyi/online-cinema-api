@@ -13,7 +13,7 @@ engine = create_async_engine(
     POSTGRESQL_DATABASE_URL,
     echo=True,
     future=True,
-    connect_args={"check_same_thread": False}
+    connect_args={"check_same_thread": False},
 )
 
 SessionLocal = async_sessionmaker(
