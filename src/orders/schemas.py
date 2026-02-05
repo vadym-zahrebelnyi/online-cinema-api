@@ -2,11 +2,13 @@ from datetime import datetime
 from typing import List
 
 from pydantic import BaseModel, ConfigDict, Field, condecimal
+
 from .models import OrderStatusEnum
 
 
 class OrderItemMovieSchema(BaseModel):
     """Movie information within an order"""
+
     title: str = Field(alias="name")
     price_at_order: condecimal(max_digits=10, decimal_places=2)
 
@@ -15,6 +17,7 @@ class OrderItemMovieSchema(BaseModel):
 
 class OrderItemReadSchema(BaseModel):
     """Schema for reading a single order item"""
+
     id: int
     movie: OrderItemMovieSchema
 
@@ -23,6 +26,7 @@ class OrderItemReadSchema(BaseModel):
 
 class OrderItemCreateSchema(BaseModel):
     """Schema for creating a single order item"""
+
     movie_id: int
     price_at_order: condecimal(max_digits=10, decimal_places=2)
 
@@ -31,6 +35,7 @@ class OrderItemCreateSchema(BaseModel):
 
 class OrderBaseSchema(BaseModel):
     """Base schema for an order"""
+
     user_id: int
     status: OrderStatusEnum
     total_amount: condecimal(max_digits=10, decimal_places=2)
@@ -40,11 +45,13 @@ class OrderBaseSchema(BaseModel):
 
 class OrderCreateSchema(OrderBaseSchema):
     """Schema for creating an order with items"""
+
     items: List[OrderItemCreateSchema]
 
 
 class OrderReadSchema(OrderBaseSchema):
     """Schema for reading an order, including items"""
+
     id: int
     created_at: datetime
     items: List[OrderItemReadSchema]
