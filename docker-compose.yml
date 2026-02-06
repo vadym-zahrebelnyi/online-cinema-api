@@ -10,6 +10,7 @@ services:
       - "8000:8000"
     volumes:
       - ./alembic:/app/alembic
+      - ./src:/app/src
     depends_on:
       db:
         condition: service_healthy
@@ -36,33 +37,33 @@ services:
       timeout: 5s
       retries: 5
 
-  celery:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-    command: celery -A src.worker worker --loglevel=info
-    env_file:
-      - .env
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-
-  celery-beat:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-    command: celery -A src.worker beat --loglevel=info
-    env_file:
-      - .env
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
+#  celery:
+#    build:
+#      context: .
+#      dockerfile: docker/Dockerfile
+#    command: celery -A src.worker worker --loglevel=info
+#    env_file:
+#      - .env
+#    depends_on:
+#      db:
+#        condition: service_healthy
+#      redis:
+#        condition: service_healthy
+#    restart: unless-stopped
+#
+#  celery-beat:
+#    build:
+#      context: .
+#      dockerfile: docker/Dockerfile
+#    command: celery -A src.worker beat --loglevel=info
+#    env_file:
+#      - .env
+#    depends_on:
+#      db:
+#        condition: service_healthy
+#      redis:
+#        condition: service_healthy
+#    restart: unless-stopped
 
   minio:
     image: minio/minio:latest

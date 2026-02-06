@@ -13,9 +13,11 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int
     POSTGRES_DB: str
 
-    # SECRET_KEY_ACCESS: str
-    # SECRET_KEY_REFRESH: str
-    # JWT_SIGNING_ALGORITHM: str
+    LOGIN_TIME_DAYS: int = 7
+
+    SECRET_KEY_ACCESS: str
+    SECRET_KEY_REFRESH: str
+    JWT_SIGNING_ALGORITHM: str
 
     REDIS_HOST: str
     REDIS_PORT: int
@@ -41,3 +43,7 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def get_settings() -> Settings:
+    return settings
