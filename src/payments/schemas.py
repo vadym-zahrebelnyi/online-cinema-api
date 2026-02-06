@@ -4,7 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl
 
-from payments.models import PaymentStatusEnum
+from .models import PaymentStatusEnum
 
 
 class PaymentGatewayCreateSchema(BaseModel):
