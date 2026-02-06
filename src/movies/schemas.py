@@ -52,9 +52,9 @@ class MovieBaseSchema(BaseModel):
 class MovieCreateSchema(MovieBaseSchema):
     model_config: ConfigDict = ConfigDict(from_attributes=True)
 
-    genre_ids: Annotated[list[int], Field(default_factory=list)] = []
-    star_ids: Annotated[list[int], Field(default_factory=list)] = []
-    director_ids: Annotated[list[int], Field(default_factory=list)] = []
+    genre_ids: Annotated[list[int], Field(default_factory=list)]
+    star_ids: Annotated[list[int], Field(default_factory=list)]
+    director_ids: Annotated[list[int], Field(default_factory=list)]
 
 
 class MovieUpdateSchema(BaseModel):
