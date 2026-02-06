@@ -49,7 +49,7 @@ async def test_create_checkout_session_success(gateway, payment_data):
 
         result = await gateway.create_checkout_session(payment_data)
 
-        assert result.url == "https://stripe.com/pay/123"
+        assert str(result.url) == "https://stripe.com/pay/123"
         assert result.session_id == "cs_test_123"
 
         mock_create.assert_called_once()
