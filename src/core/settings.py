@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     # SECRET_KEY_REFRESH: str
     # JWT_SIGNING_ALGORITHM: str
 
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
+    REDIS_HOST: str
+    REDIS_PORT: int
 
     STRIPE_SECRET_KEY: str
     STRIPE_PUBLISHABLE_KEY: str
@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     minio_port: int
     minio_storage: str
 
-    DOMAIN_NAME: str = "http://127.0.0.1:8000"
+    DOMAIN_NAME: str
 
     @property
     def DATABASE_URL(self) -> str:  # noqa
