@@ -52,5 +52,6 @@ class PaymentResponseSchema(BaseModel):
     status: PaymentStatusEnum
     created_at: datetime
     items: Annotated[
-        list[PaymentItemResponseSchema], Field(validation_alias="payment_items")
-    ] = []
+        list[PaymentItemResponseSchema],
+        Field(default_factory=list, validation_alias="payment_items"),
+    ]
