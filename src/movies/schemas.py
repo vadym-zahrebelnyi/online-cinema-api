@@ -1,5 +1,6 @@
 from decimal import Decimal
 from uuid import UUID
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -34,15 +35,15 @@ class DirectorReadSchema(BaseModel):
 
 class MovieBaseSchema(BaseModel):
     name: str
-    year: int = Field(..., ge=1900)
-    time: int = Field(..., gt=0)
+    year: Annotated[int, Field(ge=1900)]
+    time: Annotated[int, Field(gt=0)]
 
-    imdb: Decimal = Field(..., ge=0, le=10)
-    votes: int = Field(..., ge=0)
+    imdb: Annotated[Decimal, Field(ge=0, le=10)]
+    votes: Annotated[int, Field(ge=0)]
 
-    meta_score: Decimal | None = Field(None, ge=0, le=100)
-    gross: Decimal | None = Field(None, ge=0)
-    price: Decimal = Field(..., ge=0)
+    meta_score: Annotated[Decimal | None, Field(ge=0, le=100)] = None
+    gross: Annotated[Decimal | None, Field(ge=0)] = None
+    price: Annotated[Decimal, Field(ge=0)]
 
     description: str
     certification_id: int
@@ -51,9 +52,9 @@ class MovieBaseSchema(BaseModel):
 class MovieCreateSchema(MovieBaseSchema):
     model_config: ConfigDict = ConfigDict(from_attributes=True)
 
-    genre_ids: list[int] = Field(default_factory=list)
-    star_ids: list[int] = Field(default_factory=list)
-    director_ids: list[int] = Field(default_factory=list)
+    genre_ids: Annotated[list[int], Field(default_factory=list)] = []
+    star_ids: Annotated[list[int], Field(default_factory=list)] = []
+    director_ids: Annotated[list[int], Field(default_factory=list)] = []
 
 
 class MovieUpdateSchema(BaseModel):
@@ -65,15 +66,15 @@ class MovieUpdateSchema(BaseModel):
     model_config: ConfigDict = ConfigDict(from_attributes=True)
 
     name: str | None = None
-    year: int | None = Field(None, ge=1800)
-    time: int | None = Field(None, gt=0)
+    year: Annotated[int | None, Field(ge=1900)] = None
+    time: Annotated[int | None, Field(gt=0)] = None
 
-    imdb: Decimal | None = Field(None, ge=0, le=10)
-    votes: int | None = Field(None, ge=0)
+    imdb: Annotated[Decimal | None, Field(ge=0, le=10)] = None
+    votes: Annotated[int | None, Field(ge=0)] = None
 
-    meta_score: Decimal | None = Field(None, ge=0, le=100)
-    gross: Decimal | None = Field(None, ge=0)
-    price: Decimal | None = Field(None, ge=0)
+    meta_score: Annotated[Decimal | None, Field(ge=0, le=100)] = None
+    gross: Annotated[Decimal | None, Field(ge=0)] = None
+    price: Annotated[Decimal | None, Field(ge=0)] = None
 
     description: str | None = None
     certification_id: int | None = None
@@ -107,8 +108,8 @@ class MovieDetailSchema(MovieBaseSchema):
 
 
 class MoviePaginationSchema(BaseModel):
-    page: int = Field(1, ge=1)
-    size: int = Field(20, ge=1, le=100)
+    page: Annotated[int, Field(ge=1)] = 1
+    size: Annotated[int, Field(ge=1, le=100)] = 20
 
 
 class MovieFiltersSchema(BaseModel):
@@ -127,7 +128,7 @@ class MovieFiltersSchema(BaseModel):
 
 
 class MovieSearchSchema(BaseModel):
-    query: str = Field(..., min_length=1)
+    query: Annotated[str, Field(min_length=1)]
 
 
 class MovieListResponseSchema(BaseModel):
