@@ -1,7 +1,10 @@
 import asyncio
+
 from sqlalchemy import select
-from src.core.database import SessionLocal
+
 from src.accounts.models import UserGroupDB
+from src.core.database import SessionLocal
+
 
 async def seed_groups():
     async with SessionLocal() as session:
@@ -12,6 +15,7 @@ async def seed_groups():
             if not result.scalars().first():
                 session.add(UserGroupDB(name=group_name))
         await session.commit()
+
 
 if __name__ == "__main__":
     asyncio.run(seed_groups())

@@ -27,7 +27,6 @@ from src.accounts.services import AuthService
 router = APIRouter()
 
 
-
 @router.post(
     "/register/",
     response_model=RegisterResponseSchema,
