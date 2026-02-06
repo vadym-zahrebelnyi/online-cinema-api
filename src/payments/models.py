@@ -18,7 +18,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.database import Base
+from src.core.database import Base
 
 if TYPE_CHECKING:
     from src.accounts.models import UserDB
@@ -38,7 +38,6 @@ class PaymentDB(Base):
         CheckConstraint("amount >= 0", name="check_payment_amount_positive"),
         Index("idx_user_payments_history", "user_id", "created_at"),
     )
-
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     amount: Mapped[Decimal] = mapped_column(DECIMAL(10, 2), nullable=False)

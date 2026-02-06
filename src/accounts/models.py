@@ -2,6 +2,10 @@ import enum
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from src.cart.models import CartDB
+    from src.orders.models import OrderDB
+
 from sqlalchemy import (
     Boolean,
     Date,
@@ -19,7 +23,7 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql.functions import func
 
-from src.database import Base
+from src.core.database import Base
 
 if TYPE_CHECKING:
     from src.payments.models import PaymentDB

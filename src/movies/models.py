@@ -1,6 +1,10 @@
 import uuid as uuid_pkg
 from decimal import Decimal
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
+
+if TYPE_CHECKING:
+    from src.cart.models import CartItemDB
+    from src.orders.models import OrderItemDB
 
 from sqlalchemy import (
     Column,
@@ -18,7 +22,7 @@ from sqlalchemy.orm import (
     relationship,
 )
 
-from src.database import Base
+from src.core.database import Base
 
 movie_genres = Table(
     "movie_genres",
@@ -38,7 +42,9 @@ movie_directors = Table(
     "movie_directors",
     Base.metadata,
     Column("movie_id", ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True),
-    Column("director_id", ForeignKey("directors.id", ondelete="CASCADE"), primary_key=True),
+    Column(
+        "director_id", ForeignKey("directors.id", ondelete="CASCADE"), primary_key=True
+    ),
 )
 
 
@@ -46,7 +52,9 @@ class CertificationDB(Base):
     __tablename__ = "certifications"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(
+        String(100), unique=True, index=True, nullable=False
+    )
 
     movies: Mapped[List["MovieDB"]] = relationship(
         back_populates="certification",
@@ -58,7 +66,9 @@ class GenreDB(Base):
     __tablename__ = "genres"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(
+        String(100), unique=True, index=True, nullable=False
+    )
 
     movies: Mapped[List["MovieDB"]] = relationship(
         secondary=movie_genres,
@@ -71,7 +81,9 @@ class StarDB(Base):
     __tablename__ = "stars"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(
+        String(100), unique=True, index=True, nullable=False
+    )
 
     movies: Mapped[List["MovieDB"]] = relationship(
         secondary=movie_stars,
@@ -84,7 +96,9 @@ class DirectorDB(Base):
     __tablename__ = "directors"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(
+        String(100), unique=True, index=True, nullable=False
+    )
 
     movies: Mapped[List["MovieDB"]] = relationship(
         secondary=movie_directors,
@@ -123,8 +137,7 @@ class MovieDB(Base):
     description: Mapped[str] = mapped_column(Text, nullable=False)
 
     certification_id: Mapped[int] = mapped_column(
-        ForeignKey("certifications.id", ondelete="RESTRICT"),
-        nullable=False
+        ForeignKey("certifications.id", ondelete="RESTRICT"), nullable=False
     )
 
     certification: Mapped["CertificationDB"] = relationship(

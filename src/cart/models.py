@@ -1,9 +1,14 @@
 import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.database import Base
+from src.core.database import Base
+
+if TYPE_CHECKING:
+    from src.accounts.models import UserDB
+    from src.movies.models import MovieDB
 
 
 class CartDB(Base):
