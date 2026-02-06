@@ -1,10 +1,10 @@
 import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, UniqueConstraint
+from sqlalchemy import ForeignKey, UniqueConstraint, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.database import Base
+from src.core import Base
 
 if TYPE_CHECKING:
     from src.accounts.models import UserDB
@@ -19,9 +19,6 @@ class CartDB(Base):
         ForeignKey("users.id", ondelete="CASCADE"),
         unique=True,
         nullable=False,
-    )
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        default=datetime.datetime.utcnow, nullable=False
     )
 
     user: Mapped["UserDB"] = relationship(back_populates="cart")
@@ -44,7 +41,8 @@ class CartItemDB(Base):
         ForeignKey("movies.id", ondelete="CASCADE"), nullable=False
     )
     added_at: Mapped[datetime.datetime] = mapped_column(
-        default=datetime.datetime.utcnow, nullable=False
+        DateTime(timezone=True),
+        server_default=func.now(),
     )
 
     cart: Mapped["CartDB"] = relationship(back_populates="items")
