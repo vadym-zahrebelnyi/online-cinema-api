@@ -2,7 +2,6 @@ from datetime import datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
-
 from sqlalchemy.sql.annotation import Annotated
 
 
@@ -13,7 +12,6 @@ class MovieCartReadSchema(BaseModel):
     price: Decimal
     year: int
     genres: list[str]
-
 
 
 class CartItemReadSchema(BaseModel):

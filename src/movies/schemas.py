@@ -63,6 +63,7 @@ class MovieUpdateSchema(BaseModel):
     None → field unchanged
     [] → clear relations
     """
+
     model_config = ConfigDict(from_attributes=True)
 
     name: str | None = None
