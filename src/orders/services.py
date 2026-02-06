@@ -1,12 +1,20 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Dict
+from typing import Dict, List
 
-from src.orders.crud import create_order, add_order_items, get_order_by_id, update_order_status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.orders.crud import (
+    add_order_items,
+    create_order,
+    get_order_by_id,
+    update_order_status,
+)
 from src.orders.models import OrderStatusEnum
 from src.orders.schemas import OrderItemCreateSchema
 
 
-async def create_order_from_cart(db: AsyncSession, user_id: int, cart_items: List[Dict]):
+async def create_order_from_cart(
+    db: AsyncSession, user_id: int, cart_items: List[Dict]
+):
     """Create order from cart_items"""
     if not cart_items:
         raise ValueError("Cart is empty")
@@ -16,10 +24,7 @@ async def create_order_from_cart(db: AsyncSession, user_id: int, cart_items: Lis
     order = await create_order(db, user_id, total_amount)
 
     items_to_add = [
-        OrderItemCreateSchema(
-            movie_id=item["movie_id"],
-            price_at_order=item["price"]
-        )
+        OrderItemCreateSchema(movie_id=item["movie_id"], price_at_order=item["price"])
         for item in cart_items
     ]
     await add_order_items(db, order.id, items_to_add)

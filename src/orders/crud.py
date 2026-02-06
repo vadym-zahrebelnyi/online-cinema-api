@@ -4,28 +4,34 @@ from typing import List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.orders.models import OrderDB, OrderItemDB, OrderStatusEnum
 from src.orders.exceptions import OrderNotFoundError
+from src.orders.models import OrderDB, OrderItemDB, OrderStatusEnum
 from src.orders.schemas import OrderItemCreateSchema
 
 
-async def create_order(db: AsyncSession, user_id: int, total_amount: Decimal) -> OrderDB:
+async def create_order(
+    db: AsyncSession, user_id: int, total_amount: Decimal
+) -> OrderDB:
     """Create empty order without items"""
-    order = OrderDB(user_id=user_id, total_amount=total_amount, status=OrderStatusEnum.PENDING)
+    order = OrderDB(
+        user_id=user_id, total_amount=total_amount, status=OrderStatusEnum.PENDING
+    )
     db.add(order)
     await db.commit()
     await db.refresh(order)
     return order
 
 
-async def add_order_items(db: AsyncSession, order_id: int, items: List[OrderItemCreateSchema]) -> List[OrderItemDB]:
+async def add_order_items(
+    db: AsyncSession, order_id: int, items: List[OrderItemCreateSchema]
+) -> List[OrderItemDB]:
     """Add elements for order"""
     order_items = []
     for item in items:
         order_item = OrderItemDB(
             order_id=order_id,
             movie_id=item.movie_id,
-            price_at_order=item.price_at_order
+            price_at_order=item.price_at_order,
         )
         db.add(order_item)
         order_items.append(order_item)
@@ -51,7 +57,9 @@ async def get_orders_by_user(db: AsyncSession, user_id: int) -> List[OrderDB]:
     return list(result.all())
 
 
-async def update_order_status(db: AsyncSession, order: OrderDB, status: OrderStatusEnum) -> OrderDB:
+async def update_order_status(
+    db: AsyncSession, order: OrderDB, status: OrderStatusEnum
+) -> OrderDB:
     """Update order status"""
     order.status = status
     await db.commit()

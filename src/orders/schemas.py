@@ -16,11 +16,7 @@ class OrderItemMovieSchema(BaseModel):
 
     model_config = ConfigDict(
         from_attributes=True,
-        json_schema_extra={
-            "examples": [
-                {"name": "Avengers", "price_at_order": 73.8}
-            ]
-        }
+        json_schema_extra={"examples": [{"name": "Avengers", "price_at_order": 73.8}]},
     )
 
 
@@ -60,10 +56,10 @@ class OrderBaseSchema(BaseModel):
                     "total_amount": 100.0,
                     "items": [
                         {"id": 1, "movie": {"name": "Avengers", "price_at_order": 73.8}}
-                    ]
+                    ],
                 }
             ]
-        }
+        },
     )
 
 
