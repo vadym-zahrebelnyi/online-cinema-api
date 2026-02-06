@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str
     STRIPE_PUBLISHABLE_KEY: str
     STRIPE_WEBHOOK_SECRET: str
+
+    minio_root_user: str
+    minio_root_password: str
+    minio_host: str
+    minio_port: int
+    minio_storage: str
+
     DOMAIN_NAME: str = "http://127.0.0.1:8000"
 
     @property
