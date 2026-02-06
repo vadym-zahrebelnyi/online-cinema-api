@@ -17,8 +17,13 @@ class Settings(BaseSettings):
     # SECRET_KEY_REFRESH: str
     # JWT_SIGNING_ALGORITHM: str
 
-    REDIS_HOST: str
-    REDIS_PORT: int
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+
+    STRIPE_SECRET_KEY: str
+    STRIPE_PUBLISHABLE_KEY: str
+    STRIPE_WEBHOOK_SECRET: str
+    DOMAIN_NAME: str = "http://127.0.0.1:8000"
 
     @property
     def DATABASE_URL(self) -> str:  # noqa
