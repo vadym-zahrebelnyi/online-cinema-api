@@ -8,20 +8,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 from src.core import settings
-from src.database import Base, POSTGRESQL_DATABASE_URL
-
-
-# import all models !!!!!!!!!!!!!
-from src.accounts.models import (
-    UserDB,
-    UserProfileDB,
-    UserGroupDB,
-    ActivationTokenDB,
-    PasswordResetTokenDB,
-    RefreshTokenDB,
-    UserGroupEnum,
-    GenderEnum
-) # noqa
+from src.database import *
 
 
 # this is the Alembic Config object, which provides
