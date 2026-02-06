@@ -2,6 +2,10 @@ import enum
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from src.cart.models import CartDB
+    from src.orders.models import OrderDB
+
 from sqlalchemy import (
     Boolean,
     Date,
@@ -19,7 +23,7 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql.functions import func
 
-from src.database import Base
+from src.core.database import Base
 
 if TYPE_CHECKING:
     from src.payments.models import PaymentDB
@@ -71,6 +75,17 @@ class UserDB(Base):
 
     group_id: Mapped[int] = mapped_column(ForeignKey("user_groups.id"), nullable=False)
     group: Mapped["UserGroupDB"] = relationship(back_populates="users")
+
+    cart: Mapped["CartDB"] = relationship(
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+    orders: Mapped[list["OrderDB"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
     payments: Mapped[list["PaymentDB"]] = relationship(
         "PaymentDB", back_populates="user"

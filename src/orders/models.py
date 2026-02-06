@@ -1,12 +1,16 @@
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, Numeric, UniqueConstraint, func
 from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.database import Base
+from src.core.database import Base
+
+if TYPE_CHECKING:
+    from src.payments.models import PaymentItemDB
 
 
 class OrderStatusEnum(str, Enum):
@@ -82,3 +86,7 @@ class OrderItemDB(Base):
     order = relationship("OrderDB", back_populates="items")
 
     movie = relationship("MovieDB", lazy="joined")
+    payment_items: Mapped[list["PaymentItemDB"]] = relationship(
+        back_populates="order_item",
+        cascade="all, delete-orphan",
+    )
