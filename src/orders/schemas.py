@@ -56,3 +56,9 @@ class OrderReadSchema(BaseModel):
     items: List[OrderItemReadSchema]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class CancelShema(BaseModel):
+    """Schema for cancelling a single order"""
+
+    message: str
