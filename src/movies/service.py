@@ -1,47 +1,123 @@
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.movies import crud, models, schemas
+from src.movies.exceptions import (
+    CertificationInUseException,
+    CertificationNotFoundException,
+    GenreInUseException,
+    GenreNotFoundException,
+    MovieHasOrdersException,
+    MovieNotFoundException,
+)
 
 
-async def create_movie(db: AsyncSession, movie_create: schemas.MovieCreateSchema) -> models.MovieDB:
-    cert = await db.get(models.CertificationDB, movie_create.certification_id)
+# --- Movies ---
+async def create_movie(db: AsyncSession, data: schemas.MovieCreateSchema) -> models.MovieDB:
+    cert = await crud.get_certification_by_id(db, data.certification_id)
     if not cert:
-        raise ValueError("Certification not found")
+        raise CertificationNotFoundException()
 
-    if movie_create.genre_ids:
-        for gid in movie_create.genre_ids:
-            if not await db.get(models.GenreDB, gid):
-                raise ValueError(f"Genre {gid} not found")
+    movie = models.MovieDB(
+        name=data.name,
+        year=data.year,
+        time=data.time,
+        imdb=data.imdb,
+        votes=data.votes,
+        meta_score=data.meta_score,
+        gross=data.gross,
+        price=data.price,
+        description=data.description,
+        certification_id=data.certification_id,
+    )
 
-    return await crud.create_movie_db(db, movie_create)
+    if data.genre_ids:
+        movie.genres = await crud.get_genres_by_ids(db, data.genre_ids)
+    if data.star_ids:
+        result = await db.execute(select(models.StarDB).where(models.StarDB.id.in_(data.star_ids)))
+        movie.stars = result.scalars().all()
+    if data.director_ids:
+        result = await db.execute(select(models.DirectorDB).where(models.DirectorDB.id.in_(data.director_ids)))
+        movie.directors = result.scalars().all()
+
+    return await crud.create_movie(db, movie)
 
 
-async def update_movie(db: AsyncSession, movie_id: int, movie_update: schemas.MovieUpdateSchema) -> models.MovieDB | None:
-    return await crud.update_movie_db(db, movie_id, movie_update)
+async def update_movie(db: AsyncSession, movie_id: int, data: schemas.MovieUpdateSchema) -> models.MovieDB | None:
+    movie = await crud.get_movie_by_id(db, movie_id)
+    if not movie:
+        return None
+
+    update_data = data.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        if field == "genre_ids":
+            movie.genres = await crud.get_genres_by_ids(db, value) if value else []
+        elif field == "star_ids":
+            result = await db.execute(select(models.StarDB).where(models.StarDB.id.in_(value)))
+            movie.stars = result.scalars().all() if value else []
+        elif field == "director_ids":
+            result = await db.execute(select(models.DirectorDB).where(models.DirectorDB.id.in_(value)))
+            movie.directors = result.scalars().all() if value else []
+        else:
+            setattr(movie, field, value)
+
+    return await crud.update_movie(db, movie)
 
 
 async def delete_movie(db: AsyncSession, movie_id: int) -> None:
-    movie = await crud.get_movie_db(db, movie_id)
+    movie = await crud.get_movie_by_id(db, movie_id)
     if not movie:
-        raise ValueError("Movie not found")
-
+        raise MovieNotFoundException()
     if movie.order_items:
-        raise ValueError("Cannot delete movie with existing orders")
+        raise MovieHasOrdersException()
+    await crud.delete_movie(db, movie)
 
-    await crud.delete_movie_db(db, movie_id)
 
-
-async def get_movies_catalog(db: AsyncSession, skip: int = 0, limit: int = 100, filters: dict = None, sort_by: str = None):
-    movies = await crud.get_movies_db(db, skip=skip, limit=limit, **(filters or {}))
-
+async def get_movies_catalog(db: AsyncSession, skip: int, limit: int, filters: dict, sort_by: str | None):
+    movies = await crud.list_movies(db, skip=skip, limit=limit)
     if sort_by == "imdb":
         movies.sort(key=lambda m: m.imdb, reverse=True)
     elif sort_by == "year":
         movies.sort(key=lambda m: m.year, reverse=True)
-
     return movies
 
+async def get_movie(db: AsyncSession, movie_id: int) -> models.MovieDB | None:
+    return await crud.get_movie_by_id(db, movie_id)
 
-async def get_genres_with_movie_count(db: AsyncSession) -> list[dict]:
-    genres = await crud.get_all_genres(db)
-    return [{"id": g.id, "name": g.name, "movie_count": len(g.movies)} for g in genres]
+# --- Genres ---
+async def create_genre(db: AsyncSession, data: schemas.GenreCreateSchema) -> models.GenreDB:
+    genre = models.GenreDB(name=data.name)
+    return await crud.create_genre(db, genre)
+
+async def list_genres(db: AsyncSession) -> list[models.GenreDB]:
+    return await crud.list_genres(db)
+
+async def get_genre(db: AsyncSession, genre_id: int) -> models.GenreDB | None:
+    return await crud.get_genre_by_id(db, genre_id)
+
+async def delete_genre(db: AsyncSession, genre_id: int) -> None:
+    genre = await crud.get_genre_by_id(db, genre_id)
+    if not genre:
+        raise GenreNotFoundException()
+    if genre.movies:
+        raise GenreInUseException()
+    await crud.delete_genre(db, genre)
+
+# --- Certifications ---
+async def create_certification(db: AsyncSession, data: schemas.CertificationCreateSchema) -> models.CertificationDB:
+    cert = models.CertificationDB(name=data.name)
+    return await crud.create_certification(db, cert)
+
+async def list_certifications(db: AsyncSession) -> list[models.CertificationDB]:
+    return await crud.list_certifications(db)
+
+async def get_certification(db: AsyncSession, cert_id: int) -> models.CertificationDB | None:
+    return await crud.get_certification_by_id(db, cert_id)
+
+async def delete_certification(db: AsyncSession, cert_id: int) -> None:
+    cert = await crud.get_certification_by_id(db, cert_id)
+    if not cert:
+        raise CertificationNotFoundException()
+    if cert.movies:
+        raise CertificationInUseException()
+    await crud.delete_certification(db, cert)
