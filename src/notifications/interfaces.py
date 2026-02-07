@@ -45,3 +45,10 @@ class EmailSenderInterface(ABC):
             login_link (str): The login link to include in the email.
         """
         pass
+
+    @abstractmethod
+    def send_payment_success_email(
+        self, email: str, amount: str, order_id: int
+    ) -> None:
+        """Send payment confirmation email."""
+        pass

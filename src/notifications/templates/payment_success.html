@@ -1,0 +1,48 @@
+<html lang="en">
+<head>
+  <title>Payment Successful</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
+<div style="border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 20px; max-width: 480px; margin: 40px auto; background-color: #ffffff; color: #333333;">
+
+  <h2 style="color: #FF9800; text-align: center; margin: 0 0 20px; font-size: 24px; font-weight: bold;">
+    Payment Successful!
+  </h2>
+
+  <p style="margin: 10px 0; line-height: 1.6; font-size: 16px;">
+    Hello <strong id="email" style="color: #FF9800;">{{ email }}</strong>,
+  </p>
+
+  <p style="margin: 10px 0; line-height: 1.6; font-size: 16px;">
+    We are pleased to confirm that your payment has been processed successfully. You are ready to enjoy the movie!
+  </p>
+
+  <div style="background-color: #fff8e1; border-left: 4px solid #FF9800; padding: 15px; margin: 20px 0;">
+    <p style="margin: 5px 0; font-size: 16px;">
+      <strong>Order ID:</strong> #{{ order_id }}
+    </p>
+    <p style="margin: 5px 0; font-size: 16px;">
+      <strong>Total Amount:</strong> ${{ amount }}
+    </p>
+  </div>
+
+  <p style="margin: 10px 0; line-height: 1.6; font-size: 16px;">
+    You can view your ticket details and payment history by clicking the button below:
+  </p>
+  <p style="margin: 20px 0; text-align: center;">
+    <a href="{{ login_link }}" id="link" style="display: inline-block; background-color: #FF9800; color: #ffffff;
+            text-decoration: none; font-size: 16px; padding: 10px 20px; border-radius: 4px;">
+      View My Orders
+    </a>
+  </p>
+
+  <p style="margin: 20px 0 10px; line-height: 1.6; font-size: 16px;">
+    Regards,
+  </p>
+  <p style="margin: 0; font-style: italic; font-size: 16px; color: #FF9800;">
+    The DDCC team
+  </p>
+</div>
+</body>
+</html>
