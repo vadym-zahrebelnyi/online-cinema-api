@@ -6,7 +6,6 @@ from src.movies import schemas, service, crud
 
 router = APIRouter()
 
-
 @router.post("/movies/", response_model=schemas.MovieDetailSchema, tags=["movies"])
 async def create_movie(movie_create: schemas.MovieCreateSchema, db: AsyncSession = Depends(get_db)):
     try:
@@ -65,7 +64,6 @@ async def delete_movie(movie_id: int, db: AsyncSession = Depends(get_db)):
         return {"detail": "Movie deleted"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-
 
 
 @router.post("/genres/", response_model=schemas.GenreReadSchema, tags=["genres"])
