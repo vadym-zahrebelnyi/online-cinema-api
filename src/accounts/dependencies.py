@@ -14,7 +14,6 @@ from src.accounts.models import UserDB, UserGroupEnum
 from src.accounts.services import AuthService
 from src.core.database import get_db
 from src.core.settings import Settings, get_settings
-
 from src.security.interfaces import JWTAuthManagerInterface
 from src.security.token_manager import JWTAuthManager
 
