@@ -23,7 +23,7 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql.functions import func
 
-from src.core.database import Base
+from src.core import Base
 
 if TYPE_CHECKING:
     from src.payments.models import PaymentDB

@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import List
+from decimal import Decimal
+from typing import Annotated, List
 
-from pydantic import BaseModel, ConfigDict, Field, condecimal
+from pydantic import BaseModel, ConfigDict, Field
 
 from .models import OrderStatusEnum
 
@@ -10,7 +11,7 @@ class OrderItemMovieSchema(BaseModel):
     """Movie information within an order"""
 
     title: str = Field(alias="name")
-    price_at_order: condecimal(max_digits=10, decimal_places=2)
+    price_at_order: Annotated[Decimal, Field(max_digits=10, decimal_places=2)]
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -28,7 +29,7 @@ class OrderItemCreateSchema(BaseModel):
     """Schema for creating a single order item"""
 
     movie_id: int
-    price_at_order: condecimal(max_digits=10, decimal_places=2)
+    price_at_order: Annotated[Decimal, Field(max_digits=10, decimal_places=2)]
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -38,7 +39,7 @@ class OrderBaseSchema(BaseModel):
 
     user_id: int
     status: OrderStatusEnum
-    total_amount: condecimal(max_digits=10, decimal_places=2)
+    total_amount: Annotated[Decimal, Field(max_digits=10, decimal_places=2)]
 
     model_config = ConfigDict(from_attributes=True)
 
