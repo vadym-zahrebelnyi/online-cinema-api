@@ -18,7 +18,8 @@ from src.accounts.models import (
     RefreshTokenDB,
     UserDB,
     UserGroupDB,
-    UserGroupEnum, UserProfileDB,
+    UserGroupEnum,
+    UserProfileDB,
 )
 from src.accounts.schemas import (
     ActivateAccountRequestSchema,
@@ -211,10 +212,7 @@ class AuthService:
     async def get_me(self, user_id: int) -> UserDB:
         stmt = (
             select(UserDB)
-            .options(
-                joinedload(UserDB.profile),
-                joinedload(UserDB.group)
-            )
+            .options(joinedload(UserDB.profile), joinedload(UserDB.group))
             .where(UserDB.id == user_id)
         )
         result = await self.db.execute(stmt)

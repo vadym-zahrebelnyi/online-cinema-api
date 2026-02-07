@@ -16,11 +16,14 @@ from src.accounts.schemas import (
     ForgotPasswordRequestSchema,
     LoginRequestSchema,
     MessageResponseSchema,
+    ProfileUpdateSchema,
     RefreshTokenRequestSchema,
     RegisterRequestSchema,
     RegisterResponseSchema,
     ResetPasswordRequestSchema,
-    TokenPairSchema, UserResponseSchema, UserProfileResponseSchema, ProfileUpdateSchema,
+    TokenPairSchema,
+    UserProfileResponseSchema,
+    UserResponseSchema,
 )
 from src.accounts.services import AuthService
 
@@ -162,21 +165,23 @@ async def get_me(
         "group": user.group.name,
         "is_active": user.is_active,
         "created_at": user.created_at,
-        "profile": user.profile
+        "profile": user.profile,
     }
 
 
 @router.patch(
     "/me/profile/",
     response_model=UserProfileResponseSchema,
-    summary="Update my profile"
+    summary="Update my profile",
 )
 async def update_my_profile(
     profile_data: ProfileUpdateSchema,
     user_id: Annotated[int, Depends(get_current_user_id)],
     service: Annotated[AuthService, Depends(get_auth_service)],
 ):
-    return await service.update_profile(user_id, profile_data.model_dump(exclude_unset=True))
+    return await service.update_profile(
+        user_id, profile_data.model_dump(exclude_unset=True)
+    )
 
 
 @router.post(
