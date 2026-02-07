@@ -14,7 +14,6 @@ engine = create_async_engine(
     settings.DATABASE_URL,
     echo=True,
     future=True,
-    connect_args={"check_same_thread": False},
 )
 
 SessionLocal = async_sessionmaker(

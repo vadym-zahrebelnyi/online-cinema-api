@@ -13,7 +13,10 @@ class OrderItemMovieSchema(BaseModel):
     title: str = Field(alias="name")
     price_at_order: Annotated[Decimal, Field(max_digits=10, decimal_places=2)]
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={"examples": [{"name": "Avengers", "price_at_order": 73.8}]},
+    )
 
 
 class OrderItemReadSchema(BaseModel):
@@ -41,7 +44,22 @@ class OrderBaseSchema(BaseModel):
     status: OrderStatusEnum
     total_amount: Annotated[Decimal, Field(max_digits=10, decimal_places=2)]
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "id": 1,
+                    "user_id": 1,
+                    "status": "pending",
+                    "total_amount": 100.0,
+                    "items": [
+                        {"id": 1, "movie": {"name": "Avengers", "price_at_order": 73.8}}
+                    ],
+                }
+            ]
+        },
+    )
 
 
 class OrderCreateSchema(OrderBaseSchema):
