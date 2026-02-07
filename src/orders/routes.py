@@ -44,20 +44,6 @@ async def create_order_endpoint(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/{order_id}", response_model=OrderReadSchema)
-async def get_order_endpoint(
-    order_id: int, db: Annotated[AsyncSession, Depends(get_db)]
-):
-    """
-    Get order by ID
-    """
-    try:
-        order = await get_order(db, order_id)
-        return order
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-
 @router.patch("/{order_id}/cancel", response_model=CancelShema)
 async def pay_order_endpoint(
     order_id: int, db: Annotated[AsyncSession, Depends(get_db)]
