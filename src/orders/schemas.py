@@ -10,21 +10,15 @@ from .models import OrderStatusEnum
 class OrderItemMovieSchema(BaseModel):
     """Movie information within an order"""
 
-    title: str = Field(alias="name")
-    price_at_order: Annotated[Decimal, Field(max_digits=10, decimal_places=2)]
-
-    model_config = ConfigDict(
-        from_attributes=True,
-        json_schema_extra={"examples": [{"name": "Avengers", "price_at_order": 73.8}]},
-    )
+    name: str
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderItemReadSchema(BaseModel):
     """Schema for reading a single order item"""
 
-    id: int
     movie: OrderItemMovieSchema
-
+    price_at_order: Decimal
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -40,26 +34,10 @@ class OrderItemCreateSchema(BaseModel):
 class OrderBaseSchema(BaseModel):
     """Base schema for an order"""
 
-    user_id: int
-    status: OrderStatusEnum
+    id: int
+    created_at: datetime
     total_amount: Annotated[Decimal, Field(max_digits=10, decimal_places=2)]
-
-    model_config = ConfigDict(
-        from_attributes=True,
-        json_schema_extra={
-            "examples": [
-                {
-                    "id": 1,
-                    "user_id": 1,
-                    "status": "pending",
-                    "total_amount": 100.0,
-                    "items": [
-                        {"id": 1, "movie": {"name": "Avengers", "price_at_order": 73.8}}
-                    ],
-                }
-            ]
-        },
-    )
+    status: OrderStatusEnum
 
 
 class OrderCreateSchema(OrderBaseSchema):
@@ -68,11 +46,13 @@ class OrderCreateSchema(OrderBaseSchema):
     items: List[OrderItemCreateSchema]
 
 
-class OrderReadSchema(OrderBaseSchema):
+class OrderReadSchema(BaseModel):
     """Schema for reading an order, including items"""
 
     id: int
     created_at: datetime
+    total_amount: Annotated[Decimal, Field(max_digits=10, decimal_places=2)]
+    status: OrderStatusEnum
     items: List[OrderItemReadSchema]
 
     model_config = ConfigDict(from_attributes=True)
