@@ -67,7 +67,10 @@ async def update_order_status(
     return order
 
 
-async def cancel_order(db: AsyncSession, order: OrderDB) -> None:
-    """Delete order with items"""
-    await db.delete(order)
+async def cancel_order(db: AsyncSession, order_id: int) -> None:
+    """Change order status to CANCELLED"""
+    order = await db.get(OrderDB, order_id)
+    if not order:
+        raise OrderNotFoundError(f"Order {order_id} not found")
+    order.status = OrderStatusEnum.CANCELLED
     await db.commit()
