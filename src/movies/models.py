@@ -22,7 +22,7 @@ from sqlalchemy.orm import (
     relationship,
 )
 
-from src.core.database import Base
+from src.core import Base
 
 movie_genres = Table(
     "movie_genres",

@@ -1,9 +1,8 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import List
+from typing import Annotated, List
 
 from pydantic import BaseModel, ConfigDict, Field
-from typing_extensions import Annotated
 
 from .models import OrderStatusEnum
 
