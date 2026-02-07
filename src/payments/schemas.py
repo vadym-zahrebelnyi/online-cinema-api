@@ -27,16 +27,6 @@ class PaymentCheckoutRequestSchema(BaseModel):
     order_id: Annotated[int, Field(gt=0)]
 
 
-class PaymentSearchSchema(BaseModel):
-    date_from: datetime | None = None
-    date_to: datetime | None = None
-
-    user_id: Annotated[int | None, Field(gt=0, description="Filter by user ID")] = None
-    status: Annotated[
-        PaymentStatusEnum | None, Field(description="Filter by payment status")
-    ] = None
-
-
 class PaymentItemResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
