@@ -1,11 +1,16 @@
 import asyncio
 from datetime import datetime, timezone
 
-from sqlalchemy import delete
+from sqlalchemy import NullPool, delete
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from src.accounts.models import ActivationTokenDB
 from src.celery_app import celery_app
-from src.core.database import SessionLocal
+from src.core import settings
 from src.notifications.emails import EmailService
 from src.notifications.interfaces import EmailSenderInterface
 
@@ -55,13 +60,24 @@ def send_password_reset_complete_email_task(email_to: str):
 @celery_app.task
 def cleanup_expired_tokens_task():
     async def _cleanup():
-        async with SessionLocal() as session:
-            stmt = delete(ActivationTokenDB).where(
-                ActivationTokenDB.expires_at < datetime.now(timezone.utc)
-            )
-            result = await session.execute(stmt)
-            await session.commit()
-            return result.rowcount
+        task_engine = create_async_engine(
+            settings.DATABASE_URL, poolclass=NullPool, echo=True
+        )
+
+        TaskSessionLocal = async_sessionmaker(
+            bind=task_engine, class_=AsyncSession, expire_on_commit=False
+        )
+
+        try:
+            async with TaskSessionLocal() as session:
+                stmt = delete(ActivationTokenDB).where(
+                    ActivationTokenDB.expires_at < datetime.now(timezone.utc)
+                )
+                result = await session.execute(stmt)
+                await session.commit()
+                return result.rowcount
+        finally:
+            await task_engine.dispose()
 
     try:
         deleted_count = asyncio.run(_cleanup())
