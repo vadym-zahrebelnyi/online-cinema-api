@@ -19,6 +19,7 @@ from src.accounts.models import (
     UserDB,
     UserGroupDB,
     UserGroupEnum,
+    UserProfileDB,
 )
 from src.accounts.schemas import (
     ActivateAccountRequestSchema,
@@ -202,3 +203,37 @@ class AuthService:
 
         await self.db.delete(token_record)
         await self.db.commit()
+
+    async def logout_user(self, refresh_token: str) -> None:
+        stmt = delete(RefreshTokenDB).where(RefreshTokenDB.token == refresh_token)
+        await self.db.execute(stmt)
+        await self.db.commit()
+
+    async def get_me(self, user_id: int) -> UserDB:
+        stmt = (
+            select(UserDB)
+            .options(joinedload(UserDB.profile), joinedload(UserDB.group))
+            .where(UserDB.id == user_id)
+        )
+        result = await self.db.execute(stmt)
+        user = result.scalars().first()
+
+        if not user:
+            raise UserNotFoundException()
+        return user
+
+    async def update_profile(self, user_id: int, profile_data: dict) -> UserProfileDB:
+        stmt = select(UserProfileDB).where(UserProfileDB.user_id == user_id)
+        result = await self.db.execute(stmt)
+        profile = result.scalars().first()
+
+        if not profile:
+            raise UserNotFoundException()
+
+        for key, value in profile_data.items():
+            if value is not None:
+                setattr(profile, key, value)
+
+        await self.db.commit()
+        await self.db.refresh(profile)
+        return profile
