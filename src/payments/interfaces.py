@@ -58,3 +58,8 @@ class BasePaymentGateway(ABC):
             ValueError: If the payload is invalid or the signature verification fails.
         """
         pass
+
+    @abstractmethod
+    async def refund_payment(self, payment_intent_id: str) -> dict:
+        """Process a refund via the payment provider."""
+        pass

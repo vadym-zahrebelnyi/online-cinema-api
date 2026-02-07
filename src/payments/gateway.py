@@ -98,3 +98,17 @@ class StripeGateway(BasePaymentGateway):
             raise PaymentWebhookError("Invalid webhook signature") from e
         except Exception as e:
             raise PaymentWebhookError(f"Webhook processing failed: {str(e)}") from e
+
+    async def refund_payment(self, payment_intent_id: str) -> dict:
+        try:
+            refund = await stripe.Refund.create_async(payment_intent=payment_intent_id)
+            return refund
+
+        except InvalidRequestError as e:
+            raise PaymentValidationError(f"Refund failed: {e.user_message}") from e
+
+        except StripeError as e:
+            raise PaymentError(f"Stripe refund error: {e.user_message}") from e
+
+        except Exception as e:
+            raise PaymentError("Internal error during refund") from e
