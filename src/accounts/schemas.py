@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from typing import Optional
 
+from fastapi import Form
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from src.accounts.models import GenderEnum, UserGroupEnum
@@ -111,13 +112,30 @@ class RefreshTokenRequestSchema(BaseModel):
 
 
 class ProfileUpdateSchema(BaseModel):
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    gender: Optional[str] = None
-    date_of_birth: Optional[date] = None
-    info: Optional[str] = None
-
     model_config = ConfigDict(from_attributes=True)
+
+    first_name: str | None = None
+    last_name: str | None = None
+    gender: GenderEnum | None = None
+    date_of_birth: date | None = None
+    info: str | None = None
+
+    @classmethod
+    def as_form(
+        cls,
+        first_name: str | None = Form(None),
+        last_name: str | None = Form(None),
+        gender: GenderEnum | None = Form(None),  # noqa: B008
+        date_of_birth: date | None = Form(None),  # noqa: B008
+        info: str | None = Form(None),
+    ) -> "ProfileUpdateSchema":
+        return cls(
+            first_name=first_name,
+            last_name=last_name,
+            gender=gender,
+            date_of_birth=date_of_birth,
+            info=info,
+        )
 
 
 class UserProfileResponseSchema(BaseModel):
@@ -145,3 +163,8 @@ class UserResponseSchema(BaseModel):
 
 class MessageResponseSchema(BaseModel):
     message: str
+
+
+class AdminUserUpdateSchema(BaseModel):
+    is_active: bool | None = None
+    group_id: int | None = None
