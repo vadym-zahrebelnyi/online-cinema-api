@@ -34,4 +34,4 @@ class CartItemCreateSchema(BaseModel):
 
 
 class CartItemRemoveSchema(BaseModel):
-    id: Annotated[int, Field(gt=0)]
+    movie_id: Annotated[int, Field(gt=0)]
