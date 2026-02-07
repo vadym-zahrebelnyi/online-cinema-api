@@ -1,8 +1,12 @@
+from email._header_value_parser import get_token
+from http.client import HTTPException
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import HTTPException, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+from src.accounts.exceptions import InvalidTokenException
 from src.accounts.services import AuthService
 from src.core.database import get_db
 from src.core.settings import Settings, get_settings
@@ -43,3 +47,42 @@ def get_auth_service(
     jwt_manager: Annotated[JWTAuthManagerInterface, Depends(get_jwt_auth_manager)],
 ) -> AuthService:
     return AuthService(db=db, settings=settings, jwt_manager=jwt_manager)
+
+
+# async def get_current_user_id(
+#     token: Annotated[str, Depends(get_token)],
+#     jwt_manager: Annotated[JWTAuthManagerInterface, Depends(get_jwt_auth_manager)],
+# ) -> int:
+#     try:
+#         payload = jwt_manager.decode_access_token(token)
+#         user_id = payload.get("user_id")
+#         if user_id is None:
+#             raise HTTPException(
+#                 status_code=status.HTTP_401_UNAUTHORIZED,
+#                 detail="Token payload is missing user_id",
+#             )
+#         return user_id
+#     except Exception:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Invalid or expired access token",
+#         )
+
+security = HTTPBearer()
+
+
+async def get_current_user_id(
+    token: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+    jwt_manager: Annotated[JWTAuthManagerInterface, Depends(get_jwt_auth_manager)],
+) -> int:
+    try:
+        payload = jwt_manager.decode_access_token(token.credentials)
+        user_id = payload.get("user_id")
+        if user_id is None:
+            raise InvalidTokenException()
+        return user_id
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+        )
