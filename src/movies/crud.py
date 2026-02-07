@@ -1,11 +1,10 @@
 from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.movies import models, schemas
 
-# -------------------
-# GENRES
-# -------------------
 
 async def create_genre(db: AsyncSession, name: str) -> models.GenreDB:
     genre = models.GenreDB(name=name)
@@ -39,9 +38,6 @@ async def delete_genre(db: AsyncSession, genre_id: int) -> None:
         await db.delete(genre)
         await db.commit()
 
-# -------------------
-# CERTIFICATIONS
-# -------------------
 
 async def create_certification(db: AsyncSession, name: str) -> models.CertificationDB:
     cert = models.CertificationDB(name=name)
@@ -63,9 +59,6 @@ async def delete_certification(db: AsyncSession, cert_id: int) -> None:
         await db.delete(cert)
         await db.commit()
 
-# -------------------
-# MOVIES
-# -------------------
 
 async def create_movie_db(db: AsyncSession, movie_data: schemas.MovieCreateSchema) -> models.MovieDB:
     movie = models.MovieDB(

@@ -1,20 +1,24 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_db
-from src.movies import schemas, service, crud
+from src.movies import crud, schemas, service
 
+DbSession = Annotated[AsyncSession, Depends(get_db)]
 router = APIRouter()
 
+
 @router.post("/movies/", response_model=schemas.MovieDetailSchema, tags=["movies"])
-async def create_movie(movie_create: schemas.MovieCreateSchema, db: AsyncSession = Depends(get_db)):
+async def create_movie(movie_create: schemas.MovieCreateSchema, db: DbSession):
     try:
         return await service.create_movie(db, movie_create)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/movies/{movie_id}", response_model=schemas.MovieDetailSchema, tags=["movies"])
-async def get_movie(movie_id: int, db: AsyncSession = Depends(get_db)):
+async def get_movie(movie_id: int, db: DbSession):
     movie = await service.get_movie(db, movie_id)
     if not movie:
         raise HTTPException(status_code=404, detail="Movie not found")
@@ -34,7 +38,7 @@ async def list_movies(
     star_id: int | None = None,
     director_id: int | None = None,
     sort_by: str | None = None,
-    db: AsyncSession = Depends(get_db),
+    db: DbSession = None,
 ):
     filters = {
         "year_from": year_from,
@@ -51,14 +55,14 @@ async def list_movies(
     return schemas.MovieListResponseSchema(total=len(movies), page=page, size=size, items=movies)
 
 @router.patch("/movies/{movie_id}", response_model=schemas.MovieDetailSchema, tags=["movies"])
-async def update_movie(movie_id: int, movie_update: schemas.MovieUpdateSchema, db: AsyncSession = Depends(get_db)):
+async def update_movie(movie_id: int, movie_update: schemas.MovieUpdateSchema, db: DbSession):
     movie = await service.update_movie(db, movie_id, movie_update)
     if not movie:
         raise HTTPException(status_code=404, detail="Movie not found")
     return movie
 
 @router.delete("/movies/{movie_id}", tags=["movies"])
-async def delete_movie(movie_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_movie(movie_id: int, db: DbSession):
     try:
         await service.delete_movie(db, movie_id)
         return {"detail": "Movie deleted"}
@@ -67,28 +71,27 @@ async def delete_movie(movie_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/genres/", response_model=schemas.GenreReadSchema, tags=["genres"])
-async def create_genre(genre: schemas.GenreCreateSchema, db: AsyncSession = Depends(get_db)):
+async def create_genre(genre: schemas.GenreCreateSchema, db: DbSession):
     return await crud.create_genre(db, genre.name)
 
 @router.get("/genres/", response_model=list[schemas.GenreReadSchema], tags=["genres"])
-async def list_genres(db: AsyncSession = Depends(get_db)):
+async def list_genres(db: DbSession):
     return await crud.get_all_genres(db)
 
 @router.delete("/genres/{genre_id}", tags=["genres"])
-async def delete_genre(genre_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_genre(genre_id: int, db: DbSession):
     await crud.delete_genre(db, genre_id)
     return {"detail": "Genre deleted"}
 
-
 @router.post("/certifications/", response_model=schemas.CertificationReadSchema, tags=["certifications"])
-async def create_certification(cert: schemas.CertificationCreateSchema, db: AsyncSession = Depends(get_db)):
+async def create_certification(cert: schemas.CertificationCreateSchema, db: DbSession):
     return await crud.create_certification(db, cert.name)
 
 @router.get("/certifications/", response_model=list[schemas.CertificationReadSchema], tags=["certifications"])
-async def list_certifications(db: AsyncSession = Depends(get_db)):
+async def list_certifications(db: DbSession):
     return await crud.get_all_certifications(db)
 
 @router.delete("/certifications/{cert_id}", tags=["certifications"])
-async def delete_certification(cert_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_certification(cert_id: int, db: DbSession):
     await crud.delete_certification(db, cert_id)
     return {"detail": "Certification deleted"}
