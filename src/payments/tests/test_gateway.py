@@ -16,8 +16,8 @@ from src.payments.exceptions import (
     PaymentValidationError,
     PaymentWebhookError,
 )
+from src.payments.gateway import StripeGateway
 from src.payments.schemas import PaymentGatewayCreateSchema
-from src.payments.services import StripeGateway
 
 
 @pytest.fixture

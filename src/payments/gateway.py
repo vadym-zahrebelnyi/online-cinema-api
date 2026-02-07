@@ -8,7 +8,7 @@ from stripe import (
     StripeError,
 )
 
-from core.settings import settings
+from src.core.settings import settings
 
 from .exceptions import (
     PaymentConfigurationError,
