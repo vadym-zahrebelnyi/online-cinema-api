@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from src.accounts.dependencies import get_auth_service
+from src.accounts.dependencies import get_auth_service, get_current_user_id
 from src.accounts.exceptions import (
     AccountNotActiveException,
     InvalidCredentialsException,
@@ -20,7 +20,7 @@ from src.accounts.schemas import (
     RegisterRequestSchema,
     RegisterResponseSchema,
     ResetPasswordRequestSchema,
-    TokenPairSchema,
+    TokenPairSchema, UserResponseSchema, UserProfileResponseSchema, ProfileUpdateSchema,
 )
 from src.accounts.services import AuthService
 
@@ -144,3 +144,49 @@ async def reset_password_complete(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token."
         )
+
+
+@router.get(
+    "/me/",
+    response_model=UserResponseSchema,
+    summary="Get current user info",
+)
+async def get_me(
+    user_id: Annotated[int, Depends(get_current_user_id)],
+    service: Annotated[AuthService, Depends(get_auth_service)],
+):
+    user = await service.get_me(user_id)
+    return {
+        "id": user.id,
+        "email": user.email,
+        "group": user.group.name,
+        "is_active": user.is_active,
+        "created_at": user.created_at,
+        "profile": user.profile
+    }
+
+
+@router.patch(
+    "/me/profile/",
+    response_model=UserProfileResponseSchema,
+    summary="Update my profile"
+)
+async def update_my_profile(
+    profile_data: ProfileUpdateSchema,
+    user_id: Annotated[int, Depends(get_current_user_id)],
+    service: Annotated[AuthService, Depends(get_auth_service)],
+):
+    return await service.update_profile(user_id, profile_data.model_dump(exclude_unset=True))
+
+
+@router.post(
+    "/logout/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Logout user",
+)
+async def logout(
+    token_data: RefreshTokenRequestSchema,
+    service: Annotated[AuthService, Depends(get_auth_service)],
+):
+    await service.logout_user(token_data.refresh_token)
+    return None
