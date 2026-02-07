@@ -3,12 +3,13 @@ from typing import Annotated, List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.orders.crud import cancel_order
 from src.accounts.dependencies import get_current_user
 from src.accounts.models import UserDB
 from src.core.database import get_db
 from src.orders.crud import get_orders_by_user
-from src.orders.schemas import OrderItemCreateSchema, OrderReadSchema
-from src.orders.services import create_order_from_cart, get_order, mark_order_paid
+from src.orders.schemas import OrderItemCreateSchema, OrderReadSchema, CancelShema
+from src.orders.services import create_order_from_cart, get_order
 
 router = APIRouter()
 
@@ -57,15 +58,15 @@ async def get_order_endpoint(
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@router.patch("/{order_id}/pay", response_model=OrderReadSchema)
+@router.patch("/{order_id}/cancel", response_model=CancelShema)
 async def pay_order_endpoint(
     order_id: int, db: Annotated[AsyncSession, Depends(get_db)]
 ):
     """
-    Mark an order as PAID
+    Cancel order by ID
     """
     try:
-        order = await mark_order_paid(db, order_id)
-        return order
-    except ValueError as e:
+        await cancel_order(db, order_id)
+    except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    return CancelShema(message="Order canceled")
