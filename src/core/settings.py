@@ -21,16 +21,24 @@ class Settings(BaseSettings):
 
     REDIS_HOST: str
     REDIS_PORT: int
+    REDIS_URL: str
 
     STRIPE_SECRET_KEY: str
     STRIPE_PUBLISHABLE_KEY: str
     STRIPE_WEBHOOK_SECRET: str
 
-    minio_root_user: str
-    minio_root_password: str
-    minio_host: str
-    minio_port: int
-    minio_storage: str
+    MINIO_ROOT_USER: str
+    MINIO_ROOT_PASSWORD: str
+    MINIO_HOST: str
+    MINIO_PORT: int
+    MINIO_STORAGE: str
+
+    SMTP_HOST: str
+    SMTP_PORT: int
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
+    EMAILS_FROM_EMAIL: str
+    EMAILS_FROM_NAME: str
 
     DOMAIN_NAME: str
 
