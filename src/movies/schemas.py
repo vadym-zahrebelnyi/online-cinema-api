@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class CertificationReadSchema(BaseModel):
-    model_config: ConfigDict = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     name: str
@@ -18,7 +18,7 @@ class CertificationCreateSchema(BaseModel):
 
 
 class GenreReadSchema(BaseModel):
-    model_config: ConfigDict = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     name: str
@@ -29,14 +29,14 @@ class GenreCreateSchema(BaseModel):
 
 
 class StarReadSchema(BaseModel):
-    model_config: ConfigDict = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     name: str
 
 
 class DirectorReadSchema(BaseModel):
-    model_config: ConfigDict = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     name: str
@@ -59,7 +59,7 @@ class MovieBaseSchema(BaseModel):
 
 
 class MovieCreateSchema(MovieBaseSchema):
-    model_config: ConfigDict = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     genre_ids: Annotated[list[int], Field(default_factory=list)]
     star_ids: Annotated[list[int], Field(default_factory=list)]
@@ -72,7 +72,8 @@ class MovieUpdateSchema(BaseModel):
     None → field unchanged
     [] → clear relations
     """
-    model_config: ConfigDict = ConfigDict(from_attributes=True)
+
+    model_config = ConfigDict(from_attributes=True)
 
     name: str | None = None
     year: Annotated[int | None, Field(ge=1900)] = None
@@ -94,7 +95,7 @@ class MovieUpdateSchema(BaseModel):
 
 
 class MovieListItemSchema(BaseModel):
-    model_config: ConfigDict = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     uuid: UUID
@@ -105,7 +106,7 @@ class MovieListItemSchema(BaseModel):
 
 
 class MovieDetailSchema(MovieBaseSchema):
-    model_config: ConfigDict = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     id: int
     uuid: UUID
