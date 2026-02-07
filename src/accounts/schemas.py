@@ -110,6 +110,16 @@ class RefreshTokenRequestSchema(BaseModel):
     refresh_token: str
 
 
+class ProfileUpdateSchema(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    gender: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    info: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserProfileResponseSchema(BaseModel):
     id: int
     first_name: Optional[str] = None
