@@ -1,30 +1,53 @@
+from decimal import Decimal
 from typing import List
 
+from fastapi import HTTPException
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.cart.models import CartDB
+from src.cart.models import CartDB, CartItemDB
+from src.cart.services import CartService
 from src.orders.exceptions import (
     CartIsEmptyError,
-    OrderAlreadyPendingError,
     OrderNotFoundError,
 )
 from src.orders.models import OrderDB, OrderItemDB, OrderStatusEnum
-from src.orders.services import calculate_total_amount, create_order_items_from_cart
+from src.orders.services import create_order_items_from_cart
 
 
-async def create_order(db: AsyncSession, user_id: int) -> OrderDB:
+async def create_order(
+    db: AsyncSession, user_id: int, cart_service: CartService
+) -> OrderDB:
     """CREATES ORDER YEEAAAAAAAAAAAA"""
     cart = await db.scalar(
         select(CartDB)
         .where(CartDB.user_id == user_id)
-        .options(selectinload(CartDB.items))
+        .options(selectinload(CartDB.items).selectinload(CartItemDB.movie))
     )
     if not cart or not cart.items:
         raise CartIsEmptyError("Cart is empty")
 
-    cart_movie_ids = [item.movie_id for item in cart.items]
+    movies = [item.movie for item in cart.items]
+    movie_ids = [m.id for m in movies]
+
+    already_paid_query = (
+        select(OrderItemDB.movie_id)
+        .join(OrderDB)
+        .where(
+            OrderDB.user_id == user_id,
+            OrderDB.status == OrderStatusEnum.PAID,
+            OrderItemDB.movie_id.in_(movie_ids),
+        )
+    )
+    paid_result = await db.execute(already_paid_query)
+    paid_movie = paid_result.scalars().first()
+
+    if paid_movie:
+        raise HTTPException(
+            status_code=409,
+            detail=f"You have already purchased movie with ID {paid_movie}",
+        )
 
     pending_exists = await db.scalar(
         select(
@@ -32,14 +55,14 @@ async def create_order(db: AsyncSession, user_id: int) -> OrderDB:
                 OrderDB.user_id == user_id,
                 OrderDB.status == OrderStatusEnum.PENDING,
                 OrderDB.id == OrderItemDB.order_id,
-                OrderItemDB.movie_id.in_(cart_movie_ids),
+                OrderItemDB.movie_id.in_(movie_ids),
             )
         )
     )
     if pending_exists:
-        raise OrderAlreadyPendingError("Order already pending")
+        raise HTTPException(status_code=409, detail="Order already pending")
 
-    total_amount, movies = await calculate_total_amount(db, cart.items)
+    total_amount = Decimal(sum(m.price for m in movies))
 
     order = OrderDB(
         user_id=user_id, status=OrderStatusEnum.PENDING, total_amount=total_amount
@@ -49,13 +72,15 @@ async def create_order(db: AsyncSession, user_id: int) -> OrderDB:
 
     await create_order_items_from_cart(db, order.id, movies)
 
+    await cart_service.clear_cart(user_id=user_id, anon_id=None)
+
     await db.commit()
-    order = await db.scalar(
+
+    return await db.scalar(
         select(OrderDB)
         .where(OrderDB.id == order.id)
         .options(selectinload(OrderDB.items).selectinload(OrderItemDB.movie))
     )
-    return order
 
 
 async def get_orders_by_user(db: AsyncSession, user_id: int) -> List[OrderDB]:
