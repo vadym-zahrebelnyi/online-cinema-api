@@ -37,6 +37,20 @@ services:
       timeout: 5s
       retries: 5
 
+  migrator:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: cinema_migrator
+    command: alembic upgrade head
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - default
+
   celery:
     build:
       context: .
@@ -81,6 +95,26 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - default
+
+  minio_setup:
+    build:
+      context: ./docker/minio
+    container_name: minio_setup
+    depends_on:
+      minio:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      MINIO_HOST: minio
+      MINIO_PORT: 9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      BUCKET_NAME: ${S3_BUCKET_NAME}
+    networks:
+      - default
 
   redis:
     image: redis:7-alpine
