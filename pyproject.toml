@@ -5,11 +5,14 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12.8"
 dependencies = [
+    "aioboto3>=15.5.0",
     "aiosqlite>=0.22.1",
     "alembic>=1.18.3",
     "asyncpg>=0.31.0",
     "bcrypt>=4.0.1",
+    "celery-types==0.24.0",
     "celery[redis]>=5.6.2",
+    "fastapi-filter>=2.0.1",
     "fastapi[standard]>=0.128.0",
     "greenlet>=3.3.1",
     "passlib[bcrypt]>=1.7.4",
@@ -17,6 +20,7 @@ dependencies = [
     "python-jose[cryptography]>=3.5.0",
     "sqlalchemy>=2.0.46",
     "stripe>=14.3.0",
+    "types-aioboto3[s3]>=15.5.0",
 ]
 
 [dependency-groups]

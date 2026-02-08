@@ -1,17 +1,32 @@
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import (
+    HTTPAuthorizationCredentials,
+    HTTPBearer,
+    OAuth2PasswordBearer,
+)
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from src.accounts.exceptions import InvalidTokenException
+from src.accounts.models import UserDB, UserGroupEnum
 from src.accounts.services import AuthService
 from src.core.database import get_db
-from src.core.settings import Settings, get_settings
-
-# from src.notifications import EmailSenderInterface
+from src.core.settings import Settings, get_settings, settings
 from src.security.interfaces import JWTAuthManagerInterface
 from src.security.token_manager import JWTAuthManager
+from src.storages.s3 import S3StorageClient
+
+
+def get_s3_client() -> S3StorageClient:
+    return S3StorageClient(
+        endpoint_url=settings.S3_URL,
+        access_key=settings.S3_ACCESS_KEY,
+        secret_key=settings.S3_SECRET_KEY,
+        bucket_name=settings.S3_BUCKET_NAME,
+        region_name=settings.S3_REGION,
+    )
 
 
 def get_jwt_auth_manager(
@@ -43,44 +58,75 @@ def get_auth_service(
     db: Annotated[AsyncSession, Depends(get_db)],
     settings: Annotated[Settings, Depends(get_settings)],
     jwt_manager: Annotated[JWTAuthManagerInterface, Depends(get_jwt_auth_manager)],
+    s3_client: Annotated[S3StorageClient, Depends(get_s3_client)],
 ) -> AuthService:
-    return AuthService(db=db, settings=settings, jwt_manager=jwt_manager)
+    return AuthService(
+        db=db, settings=settings, jwt_manager=jwt_manager, storage_client=s3_client
+    )
 
 
-# async def get_current_user_id(
-#     token: Annotated[str, Depends(get_token)],
-#     jwt_manager: Annotated[JWTAuthManagerInterface, Depends(get_jwt_auth_manager)],
-# ) -> int:
-#     try:
-#         payload = jwt_manager.decode_access_token(token)
-#         user_id = payload.get("user_id")
-#         if user_id is None:
-#             raise HTTPException(
-#                 status_code=status.HTTP_401_UNAUTHORIZED,
-#                 detail="Token payload is missing user_id",
-#             )
-#         return user_id
-#     except Exception:
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="Invalid or expired access token",
-#         )
-
-security = HTTPBearer()
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/api/v1/accounts/token/", auto_error=False
+)
+http_bearer = HTTPBearer(auto_error=False)
 
 
-async def get_current_user_id(
-    token: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+async def get_current_user(
+    token_oauth: Annotated[str | None, Depends(oauth2_scheme)],
+    token_bearer: Annotated[HTTPAuthorizationCredentials | None, Depends(http_bearer)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     jwt_manager: Annotated[JWTAuthManagerInterface, Depends(get_jwt_auth_manager)],
-) -> int:
+) -> UserDB:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    token = None
+    if token_bearer:
+        token = token_bearer.credentials
+    elif token_oauth:
+        token = token_oauth
+
+    if token is None:
+        raise credentials_exception
     try:
-        payload = jwt_manager.decode_access_token(token.credentials)
+        payload = jwt_manager.decode_access_token(token)
         user_id = payload.get("user_id")
         if user_id is None:
-            raise InvalidTokenException()
-        return user_id
+            raise credentials_exception
     except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-        )
+        raise credentials_exception
+
+    stmt = (
+        select(UserDB)
+        .options(selectinload(UserDB.group), selectinload(UserDB.profile))
+        .where(UserDB.id == int(user_id))
+    )
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        raise credentials_exception
+
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+
+    return user
+
+
+class RoleChecker:
+    def __init__(self, allowed_roles: list[UserGroupEnum]):
+        self.allowed_roles = allowed_roles
+
+    def __call__(self, user: Annotated[UserDB, Depends(get_current_user)]) -> UserDB:
+        if user.group.name not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to perform this action",
+            )
+        return user
+
+
+allow_admin = RoleChecker([UserGroupEnum.ADMIN])
+allow_moderator = RoleChecker([UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN])

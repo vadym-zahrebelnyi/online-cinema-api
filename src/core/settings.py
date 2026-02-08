@@ -1,3 +1,4 @@
+from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,20 +27,36 @@ class Settings(BaseSettings):
     STRIPE_PUBLISHABLE_KEY: str
     STRIPE_WEBHOOK_SECRET: str
 
-    minio_root_user: str
-    minio_root_password: str
-    minio_host: str
-    minio_port: int
-    minio_storage: str
+    MINIO_ROOT_USER: str
+    MINIO_ROOT_PASSWORD: str
+
+    S3_URL: str
+    S3_BUCKET_NAME: str
+    S3_ACCESS_KEY: str
+    S3_SECRET_KEY: str
+    S3_REGION: str
+
+    SMTP_HOST: str
+    SMTP_PORT: int
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
+    EMAILS_FROM_EMAIL: str
+    EMAILS_FROM_NAME: str
 
     DOMAIN_NAME: str
 
+    @computed_field
     @property
     def DATABASE_URL(self) -> str:  # noqa
         return (
             f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@"
             f"{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         )
+
+    @computed_field
+    @property
+    def REDIS_URL(self) -> str:
+        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/0"
 
 
 settings = Settings()

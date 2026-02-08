@@ -37,37 +37,51 @@ services:
       timeout: 5s
       retries: 5
 
-#  celery:
-#    build:
-#      context: .
-#      dockerfile: docker/Dockerfile
-#    command: celery -A src.worker worker --loglevel=info
-#    env_file:
-#      - .env
-#    depends_on:
-#      db:
-#        condition: service_healthy
-#      redis:
-#        condition: service_healthy
-#    restart: unless-stopped
-#
-#  celery-beat:
-#    build:
-#      context: .
-#      dockerfile: docker/Dockerfile
-#    command: celery -A src.worker beat --loglevel=info
-#    env_file:
-#      - .env
-#    depends_on:
-#      db:
-#        condition: service_healthy
-#      redis:
-#        condition: service_healthy
-#    restart: unless-stopped
+  migrator:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: cinema_migrator
+    command: alembic upgrade head
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - default
+
+  celery:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: celery -A src.celery_app worker --loglevel=info
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: celery -A src.celery_app beat --loglevel=info
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
   minio:
     image: minio/minio:latest
-    container_name: minio-theater
+    container_name: minio-cinema
     command: server --console-address ":9001" /data
     ports:
       - "9000:9000"
@@ -81,6 +95,26 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - default
+
+  minio_setup:
+    build:
+      context: ./docker/minio
+    container_name: minio_setup
+    depends_on:
+      minio:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      MINIO_HOST: minio
+      MINIO_PORT: 9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      BUCKET_NAME: ${S3_BUCKET_NAME}
+    networks:
+      - default
 
   redis:
     image: redis:7-alpine
@@ -96,12 +130,20 @@ services:
   stripe-cli:
     image: stripe/stripe-cli:latest
     container_name: stripe_cli
-    command: listen --forward-to web:8000/api/webhooks/stripe --api-key ${STRIPE_SECRET_KEY}
+    command: listen --forward-to web:8000/api/v1/payments/webhooks/stripe --api-key ${STRIPE_SECRET_KEY}
     env_file:
       - .env
     depends_on:
       - web
     restart: on-failure
+
+  mailhog:
+      image: mailhog/mailhog
+      container_name: mailhog
+      ports:
+        - "1025:1025"
+        - "8025:8025"
+      restart: unless-stopped
 
 volumes:
   cinema_db_data:
