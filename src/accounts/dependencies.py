@@ -94,7 +94,6 @@ async def _get_user_from_request(
     except Exception:
         return None
 
-    # Оптимізований запит
     stmt = (
         select(UserDB)
         .options(selectinload(UserDB.group), selectinload(UserDB.profile))
