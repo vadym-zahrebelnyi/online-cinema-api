@@ -1,4 +1,4 @@
-from typing import Annotated, List
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from fastapi_filter import FilterDepends
@@ -131,7 +131,7 @@ async def approve_refund(
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
 
 
-@router.get("/history/my", response_model=List[PaymentResponseSchema])
+@router.get("/history/my", response_model=list[PaymentResponseSchema])
 async def get_my_payments(
     current_user: Annotated[UserDB, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -139,7 +139,7 @@ async def get_my_payments(
     return await payment_crud.get_user_payments(db, user_id=current_user.id)
 
 
-@router.get("/history/all", response_model=List[PaymentResponseSchema])
+@router.get("/history/all", response_model=list[PaymentResponseSchema])
 async def get_all_payments_admin(
     filters: Annotated[PaymentFilter, FilterDepends(PaymentFilter)],
     db: Annotated[AsyncSession, Depends(get_db)],
