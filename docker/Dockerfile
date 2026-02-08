@@ -1,5 +1,7 @@
 FROM python:3.12.8-slim AS builder
 
+ARG APP_ENV=dev
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
@@ -15,9 +17,13 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-COPY pyproject.toml uv.lock alembic.ini ./
+COPY pyproject.toml uv.lock configs/alembic/alembic.ini ./
 
-RUN uv sync --frozen
+RUN if [ "$APP_ENV" = "dev" ]; then \
+        uv sync --frozen ; \
+    else \
+        uv sync --frozen --no-dev ; \
+    fi
 
 COPY src/ ./src
 COPY alembic/ ./alembic
