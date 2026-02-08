@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, UploadFile
@@ -35,15 +36,21 @@ from src.accounts.schemas import (
 )
 from src.core.settings import Settings
 from src.security.interfaces import JWTAuthManagerInterface
+from src.storages.s3 import S3StorageClient
 
 
 class AuthService:
     def __init__(
-        self, db: AsyncSession, settings: Settings, jwt_manager: JWTAuthManagerInterface
+        self,
+        db: AsyncSession,
+        settings: Settings,
+        jwt_manager: JWTAuthManagerInterface,
+        storage_client: S3StorageClient,
     ):
         self.db = db
         self.settings = settings
         self.jwt_manager = jwt_manager
+        self.storage_client = storage_client
 
     async def register_user(self, user_data: RegisterRequestSchema) -> UserDB:
         stmt = select(UserGroupDB).where(UserGroupDB.name == UserGroupEnum.USER)
@@ -253,14 +260,22 @@ class AuthService:
             raise UserNotFoundException("Profile integrity error")
 
         for key, value in profile_data.items():
-            setattr(profile, key, value)
+            if value is not None:
+                setattr(profile, key, value)
 
         if avatar:
-            # TODO: (S3 / MinIO / Local)
-            # file_path = await save_file_to_storage(avatar)
-            # profile.avatar = file_path
+            file_content = await avatar.read()
 
-            profile.avatar = f"path/to/{avatar.filename}"
+            file_extension = avatar.filename.split(".")[-1]
+            file_name = f"avatars/{user.id}/{uuid.uuid4()}.{file_extension}"
+
+            file_url = await self.storage_client.upload_file(
+                file_name=file_name,
+                file_data=file_content,
+                content_type=avatar.content_type or "application/octet-stream",
+            )
+
+            profile.avatar = file_url
 
         await self.db.commit()
         await self.db.refresh(profile)

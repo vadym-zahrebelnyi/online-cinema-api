@@ -29,9 +29,12 @@ class Settings(BaseSettings):
 
     MINIO_ROOT_USER: str
     MINIO_ROOT_PASSWORD: str
-    MINIO_HOST: str
-    MINIO_PORT: int
-    MINIO_STORAGE: str
+
+    S3_URL: str
+    S3_BUCKET_NAME: str
+    S3_ACCESS_KEY: str
+    S3_SECRET_KEY: str
+    S3_REGION: str
 
     SMTP_HOST: str
     SMTP_PORT: int

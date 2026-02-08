@@ -13,9 +13,20 @@ from sqlalchemy.orm import selectinload
 from src.accounts.models import UserDB, UserGroupEnum
 from src.accounts.services import AuthService
 from src.core.database import get_db
-from src.core.settings import Settings, get_settings
+from src.core.settings import Settings, get_settings, settings
 from src.security.interfaces import JWTAuthManagerInterface
 from src.security.token_manager import JWTAuthManager
+from src.storages.s3 import S3StorageClient
+
+
+def get_s3_client() -> S3StorageClient:
+    return S3StorageClient(
+        endpoint_url=settings.S3_URL,
+        access_key=settings.S3_ACCESS_KEY,
+        secret_key=settings.S3_SECRET_KEY,
+        bucket_name=settings.S3_BUCKET_NAME,
+        region_name=settings.S3_REGION,
+    )
 
 
 def get_jwt_auth_manager(
@@ -47,8 +58,11 @@ def get_auth_service(
     db: Annotated[AsyncSession, Depends(get_db)],
     settings: Annotated[Settings, Depends(get_settings)],
     jwt_manager: Annotated[JWTAuthManagerInterface, Depends(get_jwt_auth_manager)],
+    s3_client: Annotated[S3StorageClient, Depends(get_s3_client)],
 ) -> AuthService:
-    return AuthService(db=db, settings=settings, jwt_manager=jwt_manager)
+    return AuthService(
+        db=db, settings=settings, jwt_manager=jwt_manager, storage_client=s3_client
+    )
 
 
 oauth2_scheme = OAuth2PasswordBearer(
