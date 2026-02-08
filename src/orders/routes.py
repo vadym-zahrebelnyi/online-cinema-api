@@ -1,16 +1,21 @@
 from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi_filter import FilterDepends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi_filter import FilterDepends
-from src.orders.filters import OrderFilter
-from src.accounts.dependencies import get_current_user, allow_admin
+from src.accounts.dependencies import allow_admin, get_current_user
 from src.accounts.models import UserDB
 from src.cart.dependencies import get_cart_service
 from src.cart.services import CartService
 from src.core.database import get_db
-from src.orders.crud import cancel_order, create_order, get_orders_by_user, get_all_orders_filtered
+from src.orders.crud import (
+    cancel_order,
+    create_order,
+    get_all_orders_filtered,
+    get_orders_by_user,
+)
+from src.orders.filters import OrderFilter
 from src.orders.schemas import CancelShema, OrderReadSchema
 
 router = APIRouter()
