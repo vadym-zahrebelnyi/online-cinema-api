@@ -22,30 +22,6 @@ class OrderItemReadSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class OrderItemCreateSchema(BaseModel):
-    """Schema for creating a single order item"""
-
-    movie_id: int
-    price_at_order: Annotated[Decimal, Field(max_digits=10, decimal_places=2)]
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class OrderBaseSchema(BaseModel):
-    """Base schema for an order"""
-
-    id: int
-    created_at: datetime
-    total_amount: Annotated[Decimal, Field(max_digits=10, decimal_places=2)]
-    status: OrderStatusEnum
-
-
-class OrderCreateSchema(OrderBaseSchema):
-    """Schema for creating an order with items"""
-
-    items: List[OrderItemCreateSchema]
-
-
 class OrderReadSchema(BaseModel):
     """Schema for reading an order, including items"""
 
