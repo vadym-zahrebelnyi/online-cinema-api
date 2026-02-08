@@ -12,6 +12,7 @@ from src.orders.exceptions import (
     CartIsEmptyError,
     OrderNotFoundError,
 )
+from src.orders.filters import OrderFilter
 from src.orders.models import OrderDB, OrderItemDB, OrderStatusEnum
 from src.orders.services import create_order_items_from_cart
 
@@ -108,3 +109,15 @@ async def get_order_with_items(db: AsyncSession, order_id: int) -> OrderDB | Non
         .options(selectinload(OrderDB.items))
     )
     return await db.scalar(stmt)
+
+
+async def get_all_orders_filtered(db: AsyncSession, filters: OrderFilter):
+    query = select(OrderDB).options(
+        selectinload(OrderDB.items).selectinload(OrderItemDB.movie)
+    )
+
+    query = filters.filter(query)
+    query = filters.sort(query)
+
+    result = await db.scalars(query)
+    return result.all()
