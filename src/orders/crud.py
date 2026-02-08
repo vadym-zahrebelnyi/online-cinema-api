@@ -6,6 +6,7 @@ from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from src.orders.filters import OrderFilter
 from src.cart.models import CartDB, CartItemDB
 from src.cart.services import CartService
 from src.orders.exceptions import (
@@ -108,3 +109,17 @@ async def get_order_with_items(db: AsyncSession, order_id: int) -> OrderDB | Non
         .options(selectinload(OrderDB.items))
     )
     return await db.scalar(stmt)
+
+
+async def get_all_orders_filtered(db: AsyncSession, filters: OrderFilter):
+    query = (
+        select(OrderDB)
+        .options(selectinload(OrderDB.items).selectinload(OrderItemDB.movie))
+    )
+
+    query = filters.filter(query)
+    query = filters.sort(query)
+
+    result = await db.scalars(query)
+    return result.all()
+
