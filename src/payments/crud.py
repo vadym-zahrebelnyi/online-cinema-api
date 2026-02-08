@@ -178,6 +178,23 @@ class PaymentCRUD:
         result = await db.execute(stmt)
         return result.scalars().all()
 
+    async def get_payment_details(
+        self, db: AsyncSession, payment_id: int
+    ) -> PaymentDB | None:
+        stmt = (
+            select(PaymentDB)
+            .where(PaymentDB.id == payment_id)
+            .options(
+                selectinload(PaymentDB.payment_items)
+                .selectinload(PaymentItemDB.order_item)
+                .selectinload(OrderItemDB.movie),
+                selectinload(PaymentDB.user),
+                selectinload(PaymentDB.order),
+            )
+        )
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def get_by_id(self, db: AsyncSession, payment_id: int) -> PaymentDB | None:
         return await db.get(PaymentDB, payment_id)
 

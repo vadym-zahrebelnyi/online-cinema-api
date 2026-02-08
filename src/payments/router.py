@@ -22,6 +22,7 @@ from .exceptions import (
 from .filters import PaymentFilter
 from .schemas import (
     PaymentCheckoutRequestSchema,
+    PaymentDetailSchema,
     PaymentGatewayResponseSchema,
     PaymentResponseSchema,
 )
@@ -141,6 +142,20 @@ async def get_my_payments(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     return await payment_crud.get_user_payments(db, user_id=current_user.id)
+
+
+@router.get("/{payment_id}", response_model=PaymentDetailSchema)
+async def get_payment_details(
+    payment_id: int,
+    _: Annotated[UserDB, Depends(allow_moderator)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    payment = await payment_crud.get_payment_details(db, payment_id)
+
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    return payment
 
 
 @router.get("/history/all", response_model=list[PaymentResponseSchema])
