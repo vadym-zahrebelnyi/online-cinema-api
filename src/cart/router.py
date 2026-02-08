@@ -12,7 +12,7 @@ from src.cart.exceptions import (
 from src.cart.schemas import CartReadSchema
 from src.cart.services import CartService
 
-router = APIRouter(prefix="/cart", tags=["Cart"])
+router = APIRouter()
 
 
 @router.get("/", response_model=CartReadSchema)
