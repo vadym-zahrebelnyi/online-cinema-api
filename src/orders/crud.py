@@ -1,19 +1,25 @@
 from typing import List
 
-from sqlalchemy import select, exists
+from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.orders.services import calculate_total_amount, create_order_items_from_cart
 from src.cart.models import CartDB
-from src.orders.exceptions import OrderNotFoundError, CartIsEmptyError, OrderAlreadyPendingError
-from src.orders.models import OrderDB, OrderStatusEnum, OrderItemDB
+from src.orders.exceptions import (
+    CartIsEmptyError,
+    OrderAlreadyPendingError,
+    OrderNotFoundError,
+)
+from src.orders.models import OrderDB, OrderItemDB, OrderStatusEnum
+from src.orders.services import calculate_total_amount, create_order_items_from_cart
 
 
 async def create_order(db: AsyncSession, user_id: int) -> OrderDB:
     """CREATES ORDER YEEAAAAAAAAAAAA"""
     cart = await db.scalar(
-        select(CartDB).where(CartDB.user_id == user_id).options(selectinload(CartDB.items))
+        select(CartDB)
+        .where(CartDB.user_id == user_id)
+        .options(selectinload(CartDB.items))
     )
     if not cart or not cart.items:
         raise CartIsEmptyError("Cart is empty")
@@ -36,9 +42,7 @@ async def create_order(db: AsyncSession, user_id: int) -> OrderDB:
     total_amount, movies = await calculate_total_amount(db, cart.items)
 
     order = OrderDB(
-        user_id=user_id,
-        status=OrderStatusEnum.PENDING,
-        total_amount=total_amount
+        user_id=user_id, status=OrderStatusEnum.PENDING, total_amount=total_amount
     )
     db.add(order)
     await db.flush()

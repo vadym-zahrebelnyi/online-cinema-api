@@ -3,12 +3,11 @@ from typing import Annotated, List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.orders.crud import cancel_order, create_order
 from src.accounts.dependencies import get_current_user
 from src.accounts.models import UserDB
 from src.core.database import get_db
-from src.orders.crud import get_orders_by_user
-from src.orders.schemas import OrderReadSchema, CancelShema
+from src.orders.crud import cancel_order, create_order, get_orders_by_user
+from src.orders.schemas import CancelShema, OrderReadSchema
 
 router = APIRouter()
 
@@ -19,7 +18,7 @@ router = APIRouter()
 )
 async def get_my_orders_endpoint(
     current_user: Annotated[UserDB, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)]
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Get all user's orders"""
     return await get_orders_by_user(db, current_user.id)
