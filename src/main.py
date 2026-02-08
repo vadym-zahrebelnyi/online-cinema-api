@@ -2,10 +2,10 @@ from fastapi import APIRouter, FastAPI
 
 from src.accounts.router import router as accounts_router
 from src.core.settings import settings
+from src.movies.router import router as movies_router
 from src.orders.routes import router as orders_router
 from src.payments.pages.router import router as payment_pages_router
 from src.payments.router import router as payments_router
-from src.movies.router import router as movies_router  # наш модуль
 
 app = FastAPI(title=settings.APP_NAME)
 
