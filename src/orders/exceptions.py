@@ -12,3 +12,15 @@ class OrderUpdateError(Exception):
 
 class OrderDeleteError(Exception):
     pass
+
+
+class MovieNotAvailableError(Exception):
+    pass
+
+
+class CartIsEmptyError(Exception):
+    pass
+
+
+class OrderAlreadyPendingError(Exception):
+    pass
