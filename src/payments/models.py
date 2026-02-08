@@ -18,7 +18,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core import Base
+from src.core.database import Base
 
 if TYPE_CHECKING:
     from src.accounts.models import UserDB
@@ -30,6 +30,7 @@ class PaymentStatusEnum(str, enum.Enum):
     SUCCESSFUL = "successful"
     CANCELED = "canceled"
     REFUNDED = "refunded"
+    REFUND_REQUESTED = "refund_requested"
 
 
 class PaymentDB(Base):
@@ -101,6 +102,12 @@ class PaymentItemDB(Base):
         "PaymentDB", back_populates="payment_items"
     )
     order_item: Mapped["OrderItemDB"] = relationship("OrderItemDB")
+
+    @property
+    def movie_title(self) -> str:
+        if self.order_item and self.order_item.movie:
+            return self.order_item.movie.name
+        return "Unknown Movie"
 
     def __repr__(self) -> str:
         return f"<PaymentItem(id={self.id}, price={self.price_at_payment})>"

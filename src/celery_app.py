@@ -5,7 +5,12 @@ from src.core.settings import settings
 
 celery_app = Celery("worker", broker=settings.REDIS_URL, backend=settings.REDIS_URL)
 
-celery_app.autodiscover_tasks(["src.accounts"])
+celery_app.autodiscover_tasks(
+    [
+        "src.accounts",
+        "src.payments",
+    ]
+)
 
 celery_app.conf.update(
     task_serializer="json",

@@ -3,6 +3,7 @@ from typing import List
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.orders.exceptions import OrderNotFoundError
 from src.orders.models import OrderDB, OrderItemDB, OrderStatusEnum
@@ -71,3 +72,15 @@ async def cancel_order(db: AsyncSession, order: OrderDB) -> None:
     """Delete order with items"""
     await db.delete(order)
     await db.commit()
+
+
+async def get_order_with_items(db: AsyncSession, order_id: int) -> OrderDB | None:
+    """
+    Return order with loaded items specifically for payment processing.
+    """
+    stmt = (
+        select(OrderDB)
+        .where(OrderDB.id == order_id)
+        .options(selectinload(OrderDB.items))
+    )
+    return await db.scalar(stmt)

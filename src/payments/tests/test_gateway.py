@@ -8,16 +8,18 @@ from stripe import (
     InvalidRequestError,
     RateLimitError,
     SignatureVerificationError,
+    StripeError,
 )
 
 from src.payments.exceptions import (
     PaymentConfigurationError,
     PaymentConnectionError,
+    PaymentError,
     PaymentValidationError,
     PaymentWebhookError,
 )
+from src.payments.gateway import StripeGateway
 from src.payments.schemas import PaymentGatewayCreateSchema
-from src.payments.services import StripeGateway
 
 
 @pytest.fixture
@@ -70,7 +72,7 @@ async def test_create_session_invalid_request_error(gateway, payment_data):
         with pytest.raises(PaymentValidationError) as exc:
             await gateway.create_checkout_session(payment_data)
 
-        assert "Invalid currency" in str(exc.value)
+        assert "Invalid payment data" in str(exc.value)
 
 
 @pytest.mark.asyncio
@@ -147,3 +149,46 @@ async def test_validate_webhook_invalid_payload(gateway):
             await gateway.validate_webhook(b"bad_json", "sig")
 
         assert "Invalid payload" in str(exc.value)
+
+
+@pytest.mark.asyncio
+async def test_refund_payment_success(gateway):
+    payment_intent_id = "pi_test_12345"
+    mock_refund_response = {"id": "re_123", "status": "succeeded"}
+
+    with patch("stripe.Refund.create_async", new_callable=AsyncMock) as mock_refund:
+        mock_refund.return_value = mock_refund_response
+
+        result = await gateway.refund_payment(payment_intent_id)
+
+        assert result == mock_refund_response
+        mock_refund.assert_called_once_with(payment_intent=payment_intent_id)
+
+
+@pytest.mark.asyncio
+async def test_refund_payment_invalid_request(gateway):
+    payment_intent_id = "pi_invalid"
+
+    with patch("stripe.Refund.create_async", new_callable=AsyncMock) as mock_refund:
+        mock_refund.side_effect = InvalidRequestError(
+            "Charge already refunded", param="payment_intent"
+        )
+
+        with pytest.raises(PaymentValidationError) as exc:
+            await gateway.refund_payment(payment_intent_id)
+
+        assert "Refund failed" in str(exc.value)
+        assert "Charge already refunded" in str(exc.value)
+
+
+@pytest.mark.asyncio
+async def test_refund_payment_general_stripe_error(gateway):
+    payment_intent_id = "pi_test_error"
+
+    with patch("stripe.Refund.create_async", new_callable=AsyncMock) as mock_refund:
+        mock_refund.side_effect = StripeError("Internal Stripe Error")
+
+        with pytest.raises(PaymentError) as exc:
+            await gateway.refund_payment(payment_intent_id)
+
+        assert "Stripe refund error" in str(exc.value)

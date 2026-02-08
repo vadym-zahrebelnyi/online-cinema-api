@@ -54,3 +54,15 @@ class EmailService(EmailSenderInterface):
         template = self.env.get_template("password_reset_complete.html")
         html_content = template.render(email=email, login_link=login_link)
         self._send(email, "Security Alert: Password Changed", html_content)
+
+    def send_payment_success_email(
+        self, email: str, amount: str, order_id: int
+    ) -> None:
+        template = self.env.get_template("payment_success.html")
+        html_content = template.render(
+            email=email,
+            amount=amount,
+            order_id=order_id,
+            login_link=f"{settings.DOMAIN_NAME}/history",
+        )
+        self._send(email, f"Payment Successful - Order #{order_id}", html_content)
