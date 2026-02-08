@@ -12,7 +12,6 @@ from src.movies.exceptions import (
 )
 
 
-# --- Movies ---
 async def create_movie(db: AsyncSession, data: schemas.MovieCreateSchema) -> models.MovieDB:
     cert = await crud.get_certification_by_id(db, data.certification_id)
     if not cert:
@@ -84,7 +83,6 @@ async def get_movies_catalog(db: AsyncSession, skip: int, limit: int, filters: d
 async def get_movie(db: AsyncSession, movie_id: int) -> models.MovieDB | None:
     return await crud.get_movie_by_id(db, movie_id)
 
-# --- Genres ---
 async def create_genre(db: AsyncSession, data: schemas.GenreCreateSchema) -> models.GenreDB:
     genre = models.GenreDB(name=data.name)
     return await crud.create_genre(db, genre)
@@ -103,7 +101,6 @@ async def delete_genre(db: AsyncSession, genre_id: int) -> None:
         raise GenreInUseException()
     await crud.delete_genre(db, genre)
 
-# --- Certifications ---
 async def create_certification(db: AsyncSession, data: schemas.CertificationCreateSchema) -> models.CertificationDB:
     cert = models.CertificationDB(name=data.name)
     return await crud.create_certification(db, cert)

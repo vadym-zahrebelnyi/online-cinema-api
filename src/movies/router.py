@@ -14,7 +14,6 @@ from src.movies.exceptions import (
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 router = APIRouter()
 
-# --- Movies ---
 @router.post("/movies/", response_model=schemas.MovieDetailSchema, tags=["movies"])
 async def create_movie(movie_create: schemas.MovieCreateSchema, db: DbSession):
     return await service.create_movie(db, movie_create)
@@ -54,7 +53,6 @@ async def delete_movie(movie_id: int, db: DbSession):
     await service.delete_movie(db, movie_id)
     return {"detail": "Movie deleted"}
 
-# --- Genres ---
 @router.post("/genres/", response_model=schemas.GenreReadSchema, tags=["genres"])
 async def create_genre(genre: schemas.GenreCreateSchema, db: DbSession):
     return await service.create_genre(db, genre)
@@ -75,7 +73,6 @@ async def delete_genre(genre_id: int, db: DbSession):
     await service.delete_genre(db, genre_id)
     return {"detail": "Genre deleted"}
 
-# --- Certifications ---
 @router.post("/certifications/", response_model=schemas.CertificationReadSchema, tags=["certifications"])
 async def create_certification(cert: schemas.CertificationCreateSchema, db: DbSession):
     return await service.create_certification(db, cert)

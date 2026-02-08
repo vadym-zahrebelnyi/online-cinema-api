@@ -1,9 +1,8 @@
-# src/exceptions.py
 from fastapi import HTTPException
 
 
 class AppException(HTTPException):
-    """Базовий клас для бізнес‑винятків."""
+    """Base class for business exceptions."""
     def __init__(self, status_code: int = 400, detail: str = "Application error"):
         super().__init__(status_code=status_code, detail=detail)
 
