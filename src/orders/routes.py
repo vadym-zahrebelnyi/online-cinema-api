@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.accounts.dependencies import get_current_user
 from src.accounts.models import UserDB
+from src.cart.dependencies import get_cart_service
+from src.cart.services import CartService
 from src.core.database import get_db
 from src.orders.crud import cancel_order, create_order, get_orders_by_user
 from src.orders.schemas import CancelShema, OrderReadSchema
@@ -28,12 +30,13 @@ async def get_my_orders_endpoint(
 async def create_order_endpoint(
     current_user: Annotated[UserDB, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
+    cart_service: Annotated[CartService, Depends(get_cart_service)],
 ):
     """
     Create an order from user's cart items
     """
     try:
-        return await create_order(db, current_user.id)
+        return await create_order(db, current_user.id, cart_service)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
