@@ -1,6 +1,16 @@
+import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Cookie,
+    Depends,
+    File,
+    HTTPException,
+    Response,
+    UploadFile,
+    status,
+)
 from fastapi.security import OAuth2PasswordRequestForm
 
 from src.accounts.dependencies import (
@@ -33,6 +43,8 @@ from src.accounts.schemas import (
     UserResponseSchema,
 )
 from src.accounts.services import AuthService
+from src.cart.dependencies import get_cart_service
+from src.cart.services import CartService
 
 router = APIRouter()
 
@@ -87,12 +99,31 @@ async def activate_account(
 )
 async def login_user(
     login_data: LoginRequestSchema,
+    response: Response,
     service: Annotated[AuthService, Depends(get_auth_service)],
+    cart_service: Annotated[CartService, Depends(get_cart_service)],
+    cart_id: str | None = Cookie(None),
 ):
     try:
-        return await service.login_user(login_data)
+        token_pair = await service.login_user(login_data)
     except Exception:
         raise HTTPException(status_code=401, detail="Auth failed")
+
+    if cart_id:
+        try:
+            payload = service.jwt_manager.decode_access_token(token_pair.access_token)
+            user_id = payload.get("user_id")
+
+            if user_id:
+                await cart_service.merge_anon_cart(
+                    anon_id=cart_id, user_id=int(user_id)
+                )
+                response.delete_cookie(key="cart_id")
+
+        except Exception as e:
+            logging.error(f"Failed to merge cart: {e}")
+
+    return token_pair
 
 
 @router.post(

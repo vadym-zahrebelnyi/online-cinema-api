@@ -71,17 +71,12 @@ oauth2_scheme = OAuth2PasswordBearer(
 http_bearer = HTTPBearer(auto_error=False)
 
 
-async def get_current_user(
-    token_oauth: Annotated[str | None, Depends(oauth2_scheme)],
-    token_bearer: Annotated[HTTPAuthorizationCredentials | None, Depends(http_bearer)],
-    db: Annotated[AsyncSession, Depends(get_db)],
-    jwt_manager: Annotated[JWTAuthManagerInterface, Depends(get_jwt_auth_manager)],
-) -> UserDB:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+async def _get_user_from_request(
+    token_oauth: str | None,
+    token_bearer: HTTPAuthorizationCredentials | None,
+    db: AsyncSession,
+    jwt_manager: JWTAuthManagerInterface,
+) -> UserDB | None:
     token = None
     if token_bearer:
         token = token_bearer.credentials
@@ -89,15 +84,17 @@ async def get_current_user(
         token = token_oauth
 
     if token is None:
-        raise credentials_exception
+        return None
+
     try:
         payload = jwt_manager.decode_access_token(token)
         user_id = payload.get("user_id")
         if user_id is None:
-            raise credentials_exception
+            return None
     except Exception:
-        raise credentials_exception
+        return None
 
+    # Оптимізований запит
     stmt = (
         select(UserDB)
         .options(selectinload(UserDB.group), selectinload(UserDB.profile))
@@ -106,13 +103,36 @@ async def get_current_user(
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
 
-    if user is None:
-        raise credentials_exception
-
-    if not user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
+    if user and not user.is_active:
+        return None
 
     return user
+
+
+async def get_current_user(
+    token_oauth: Annotated[str | None, Depends(oauth2_scheme)],
+    token_bearer: Annotated[HTTPAuthorizationCredentials | None, Depends(http_bearer)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    jwt_manager: Annotated[JWTAuthManagerInterface, Depends(get_jwt_auth_manager)],
+) -> UserDB:
+    user = await _get_user_from_request(token_oauth, token_bearer, db, jwt_manager)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
+
+
+async def get_current_user_optional(
+    token_oauth: Annotated[str | None, Depends(oauth2_scheme)],
+    token_bearer: Annotated[HTTPAuthorizationCredentials | None, Depends(http_bearer)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    jwt_manager: Annotated[JWTAuthManagerInterface, Depends(get_jwt_auth_manager)],
+) -> UserDB | None:
+    return await _get_user_from_request(token_oauth, token_bearer, db, jwt_manager)
 
 
 class RoleChecker:
