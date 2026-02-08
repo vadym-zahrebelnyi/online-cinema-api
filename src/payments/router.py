@@ -4,7 +4,11 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from fastapi_filter import FilterDepends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.accounts.dependencies import allow_admin, get_current_user
+from src.accounts.dependencies import (
+    allow_admin,
+    allow_moderator,
+    get_current_user,
+)
 from src.accounts.models import UserDB
 from src.core.database import get_db
 
@@ -143,6 +147,6 @@ async def get_my_payments(
 async def get_all_payments_admin(
     filters: Annotated[PaymentFilter, FilterDepends(PaymentFilter)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[UserDB, Depends(allow_admin)],
+    _: Annotated[UserDB, Depends(allow_moderator)],
 ):
     return await payment_crud.get_all_payments_filtered(db, filters)
