@@ -1,54 +1,60 @@
-from decimal import Decimal
 from typing import List
 
-from sqlalchemy import select
+from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.orders.exceptions import OrderNotFoundError
+from src.cart.models import CartDB
+from src.orders.exceptions import (
+    CartIsEmptyError,
+    OrderAlreadyPendingError,
+    OrderNotFoundError,
+)
 from src.orders.models import OrderDB, OrderItemDB, OrderStatusEnum
-from src.orders.schemas import OrderItemCreateSchema
+from src.orders.services import calculate_total_amount, create_order_items_from_cart
 
 
-async def create_order(
-    db: AsyncSession, user_id: int, total_amount: Decimal
-) -> OrderDB:
-    """Create empty order without items"""
+async def create_order(db: AsyncSession, user_id: int) -> OrderDB:
+    """CREATES ORDER YEEAAAAAAAAAAAA"""
+    cart = await db.scalar(
+        select(CartDB)
+        .where(CartDB.user_id == user_id)
+        .options(selectinload(CartDB.items))
+    )
+    if not cart or not cart.items:
+        raise CartIsEmptyError("Cart is empty")
+
+    cart_movie_ids = [item.movie_id for item in cart.items]
+
+    pending_exists = await db.scalar(
+        select(
+            exists().where(
+                OrderDB.user_id == user_id,
+                OrderDB.status == OrderStatusEnum.PENDING,
+                OrderDB.id == OrderItemDB.order_id,
+                OrderItemDB.movie_id.in_(cart_movie_ids),
+            )
+        )
+    )
+    if pending_exists:
+        raise OrderAlreadyPendingError("Order already pending")
+
+    total_amount, movies = await calculate_total_amount(db, cart.items)
+
     order = OrderDB(
-        user_id=user_id, total_amount=total_amount, status=OrderStatusEnum.PENDING
+        user_id=user_id, status=OrderStatusEnum.PENDING, total_amount=total_amount
     )
     db.add(order)
-    await db.commit()
-    await db.refresh(order)
-    return order
+    await db.flush()
 
-
-async def add_order_items(
-    db: AsyncSession, order_id: int, items: List[OrderItemCreateSchema]
-) -> List[OrderItemDB]:
-    """Add elements for order"""
-    order_items = []
-    for item in items:
-        order_item = OrderItemDB(
-            order_id=order_id,
-            movie_id=item.movie_id,
-            price_at_order=item.price_at_order,
-        )
-        db.add(order_item)
-        order_items.append(order_item)
+    await create_order_items_from_cart(db, order.id, movies)
 
     await db.commit()
-    for item in order_items:
-        await db.refresh(item)
-
-    return order_items
-
-
-async def get_order_by_id(db: AsyncSession, order_id: int) -> OrderDB | None:
-    """Return order by id"""
-    order = await db.scalar(select(OrderDB).where(OrderDB.id == order_id))
-    if not order:
-        raise OrderNotFoundError(f"Order {order_id} not found")
+    order = await db.scalar(
+        select(OrderDB)
+        .where(OrderDB.id == order.id)
+        .options(selectinload(OrderDB.items).selectinload(OrderItemDB.movie))
+    )
     return order
 
 
@@ -58,19 +64,12 @@ async def get_orders_by_user(db: AsyncSession, user_id: int) -> List[OrderDB]:
     return list(result.all())
 
 
-async def update_order_status(
-    db: AsyncSession, order: OrderDB, status: OrderStatusEnum
-) -> OrderDB:
-    """Update order status"""
-    order.status = status
-    await db.commit()
-    await db.refresh(order)
-    return order
-
-
-async def cancel_order(db: AsyncSession, order: OrderDB) -> None:
-    """Delete order with items"""
-    await db.delete(order)
+async def cancel_order(db: AsyncSession, order_id: int) -> None:
+    """Change order status to CANCELLED"""
+    order = await db.get(OrderDB, order_id)
+    if not order:
+        raise OrderNotFoundError(f"Order {order_id} not found")
+    order.status = OrderStatusEnum.CANCELLED
     await db.commit()
 
 

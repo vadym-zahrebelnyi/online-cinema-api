@@ -1,52 +1,43 @@
-from typing import Dict, List
+from decimal import Decimal
+from typing import List, Tuple
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.orders.crud import (
-    add_order_items,
-    create_order,
-    get_order_by_id,
-    update_order_status,
-)
-from src.orders.models import OrderStatusEnum
-from src.orders.schemas import OrderItemCreateSchema
+from src.cart.models import CartItemDB
+from src.movies.models import MovieDB
+from src.orders.exceptions import MovieNotAvailableError
+from src.orders.models import OrderItemDB
 
 
-async def create_order_from_cart(
-    db: AsyncSession, user_id: int, cart_items: List[Dict]
-):
-    """Create order from cart_items"""
-    if not cart_items:
-        raise ValueError("Cart is empty")
+async def calculate_total_amount(
+    db: AsyncSession, cart_items: List[CartItemDB]
+) -> Tuple[Decimal, List[MovieDB]]:
+    """Calculate total_amount + check film availability"""
+    movie_ids = [item.movie_id for item in cart_items]
+    movies: List[MovieDB] = (
+        await db.scalars(select(MovieDB).where(MovieDB.id.in_(movie_ids)))
+    ).all()
 
-    total_amount = sum(item["price_at_order"] for item in cart_items)
-
-    order = await create_order(db, user_id, total_amount)
-
-    items_to_add = [
-        OrderItemCreateSchema(movie_id=item["movie_id"], price_at_order=item["price"])
-        for item in cart_items
+    existing_movie_ids = {movie.id for movie in movies}
+    deleted_movies = [
+        item.movie_id for item in cart_items if item.movie_id not in existing_movie_ids
     ]
-    await add_order_items(db, order.id, items_to_add)
+    if deleted_movies:
+        raise MovieNotAvailableError(f"Movies with IDs {deleted_movies} not available")
 
-    return order
-
-
-async def mark_order_paid(db: AsyncSession, order_id: int):
-    """Change order status as PAID"""
-    order = await get_order_by_id(db, order_id)
-    if not order:
-        raise ValueError("Order not found")
-
-    if order.status == OrderStatusEnum.PAID:
-        raise ValueError("Order is already paid")
-
-    return await update_order_status(db, order, OrderStatusEnum.PAID)
+    total_amount: Decimal = sum(
+        (Decimal(movie.price) for movie in movies), Decimal("0.00")
+    )
+    return total_amount, movies
 
 
-async def get_order(db: AsyncSession, order_id: int):
-    """Return order by id"""
-    order = await get_order_by_id(db, order_id)
-    if not order:
-        raise ValueError("Order not found")
-    return order
+async def create_order_items_from_cart(
+    db: AsyncSession, order_id: int, movies: list[MovieDB]
+):
+    """Create Order Items"""
+    for movie in movies:
+        order_item = OrderItemDB(
+            order_id=order_id, movie_id=movie.id, price_at_order=Decimal(movie.price)
+        )
+        db.add(order_item)
