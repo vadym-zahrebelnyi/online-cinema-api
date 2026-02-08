@@ -6,8 +6,6 @@ services:
     container_name: online_cinema_api
     env_file:
       - .env
-    ports:
-      - "8000:8000"
     volumes:
       - ./alembic:/app/alembic
       - ./src:/app/src
@@ -21,6 +19,9 @@ services:
       --host 0.0.0.0
       --port 8000
       --reload
+    networks:
+      - online_cinema_network
+    restart: unless-stopped
 
   db:
     image: postgres:16-alpine
@@ -30,12 +31,15 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - cinema_db_data:/var/lib/postgresql/data
+      - cinema_db_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - online_cinema_network
+    restart: unless-stopped
 
   migrator:
     build:
@@ -49,7 +53,7 @@ services:
       db:
         condition: service_healthy
     networks:
-      - default
+      - online_cinema_network
 
   celery:
     build:
@@ -63,6 +67,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - online_cinema_network
     restart: unless-stopped
 
   celery-beat:
@@ -77,6 +83,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - online_cinema_network
     restart: unless-stopped
 
   minio:
@@ -96,11 +104,13 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - default
+      - online_cinema_network
+    restart: unless-stopped
 
   minio_setup:
     build:
-      context: ./docker/minio
+      context: .
+      dockerfile: docker/minio/Dockerfile
     container_name: minio_setup
     depends_on:
       minio:
@@ -114,7 +124,7 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       BUCKET_NAME: ${S3_BUCKET_NAME}
     networks:
-      - default
+      - online_cinema_network
 
   redis:
     image: redis:7-alpine
@@ -126,6 +136,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - online_cinema_network
+    restart: unless-stopped
 
   stripe-cli:
     image: stripe/stripe-cli:latest
@@ -135,6 +148,8 @@ services:
       - .env
     depends_on:
       - web
+    networks:
+      - online_cinema_network
     restart: on-failure
 
   mailhog:
@@ -143,8 +158,32 @@ services:
       ports:
         - "1025:1025"
         - "8025:8025"
+      networks:
+        - online_cinema_network
       restart: unless-stopped
+
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./configs/nginx/nginx.conf:/etc/nginx/conf.d/nginx.conf:ro
+    depends_on:
+      - web
+    env_file:
+      - ./configs/nginx/.env
+    networks:
+      - online_cinema_network
+    restart: unless-stopped
+
 
 volumes:
   cinema_db_data:
   minio_data:
+
+networks:
+  online_cinema_network:
+    driver: bridge
