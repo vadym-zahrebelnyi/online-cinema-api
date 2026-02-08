@@ -6,8 +6,9 @@ from botocore.exceptions import (
     HTTPClientError,
     NoCredentialsError,
 )
-from src.storages.interfaces import S3StorageInterface
+
 from src.storages.exceptions import S3ConnectionError, S3FileUploadError
+from src.storages.interfaces import S3StorageInterface
 
 
 class S3StorageClient(S3StorageInterface):
