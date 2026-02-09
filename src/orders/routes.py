@@ -11,6 +11,7 @@ Endpoints:
     - POST /: Create a new order from the current user's cart.
     - PATCH /{order_id}/cancel: Cancel an order by its ID.
 """
+
 from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -122,7 +123,7 @@ async def cancel_order_endpoint(
         HTTPException 400: If the order does not exist or cannot be cancelled.
 
     Returns:
-        CancelShema: Confirmation message indicating the order was cancelled.
+        CancelSchema: Confirmation message indicating the order was cancelled.
     """
     try:
         await cancel_order(db, order_id)

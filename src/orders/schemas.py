@@ -28,6 +28,7 @@ class OrderItemMovieSchema(BaseModel):
     Attributes:
         name (str): Name of the movie.
     """
+
     name: str
     model_config = ConfigDict(from_attributes=True)
 
@@ -40,6 +41,7 @@ class OrderItemReadSchema(BaseModel):
         movie (OrderItemMovieSchema): Information about the movie.
         price_at_order (Decimal): Price of the movie at the time of order.
     """
+
     movie: OrderItemMovieSchema
     price_at_order: Decimal
     model_config = ConfigDict(from_attributes=True)
@@ -56,6 +58,7 @@ class OrderReadSchema(BaseModel):
         status (OrderStatusEnum): Current status of the order (e.g., pending, paid, cancelled).
         items (List[OrderItemReadSchema]): List of items included in the order.
     """
+
     id: int
     user_id: int
     created_at: datetime
@@ -73,4 +76,5 @@ class CancelSchema(BaseModel):
     Attributes:
         message (str): Confirmation message for the cancellation action.
     """
+
     message: str

@@ -34,6 +34,7 @@ class OrderFilter(Filter):
             filter = OrderFilter(user_id=123, status=OrderStatusEnum.PAID)
             results = await filter.filter(queryset)
     """
+
     user_id: int | None = None
     status: OrderStatusEnum | None = None
 
@@ -49,4 +50,5 @@ class OrderFilter(Filter):
         Attributes:
             model: The SQLAlchemy model to which this filter applies.
         """
+
         model = OrderDB
