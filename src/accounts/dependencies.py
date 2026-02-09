@@ -20,6 +20,10 @@ from src.storages.s3 import S3StorageClient
 
 
 def get_s3_client() -> S3StorageClient:
+    """
+        Initializes and returns an S3 storage client using global application settings.
+        Used for handling file uploads (e.g., user avatars).
+    """
     return S3StorageClient(
         endpoint_url=settings.S3_URL,
         access_key=settings.S3_ACCESS_KEY,
@@ -60,6 +64,10 @@ def get_auth_service(
     jwt_manager: Annotated[JWTAuthManagerInterface, Depends(get_jwt_auth_manager)],
     s3_client: Annotated[S3StorageClient, Depends(get_s3_client)],
 ) -> AuthService:
+    """
+        Provides an instance of AuthService with all required collaborators
+        (DB, Settings, JWT, S3) injected.
+    """
     return AuthService(
         db=db, settings=settings, jwt_manager=jwt_manager, storage_client=s3_client
     )
@@ -77,6 +85,12 @@ async def _get_user_from_request(
     db: AsyncSession,
     jwt_manager: JWTAuthManagerInterface,
 ) -> UserDB | None:
+    """
+        Internal helper to extract and validate a user from a JWT token found
+        in either OAuth2 or Bearer headers.
+
+        Verifies token validity, user existence, and account activity status.
+    """
     token = None
     if token_bearer:
         token = token_bearer.credentials
@@ -114,6 +128,12 @@ async def get_current_user(
     db: Annotated[AsyncSession, Depends(get_db)],
     jwt_manager: Annotated[JWTAuthManagerInterface, Depends(get_jwt_auth_manager)],
 ) -> UserDB:
+    """
+        Mandatory authentication dependency.
+
+        Extracts the user from the request token.
+        :raises HTTPException 401: If the token is invalid or the user is not found.
+    """
     user = await _get_user_from_request(token_oauth, token_bearer, db, jwt_manager)
 
     if user is None:
@@ -131,14 +151,26 @@ async def get_current_user_optional(
     db: Annotated[AsyncSession, Depends(get_db)],
     jwt_manager: Annotated[JWTAuthManagerInterface, Depends(get_jwt_auth_manager)],
 ) -> UserDB | None:
+    """
+        Optional authentication dependency.
+        Returns the User object if a valid token is present, otherwise returns None.
+    """
     return await _get_user_from_request(token_oauth, token_bearer, db, jwt_manager)
 
 
 class RoleChecker:
+    """
+        Authorization dependency to enforce role-based access control (RBAC).
+
+        Checks if the authenticated user belongs to one of the allowed groups.
+        :raises HTTPException 403: If the user does not have the required role.
+    """
     def __init__(self, allowed_roles: list[UserGroupEnum]):
+        """Initialize with a list of roles permitted to access the resource."""
         self.allowed_roles = allowed_roles
 
     def __call__(self, user: Annotated[UserDB, Depends(get_current_user)]) -> UserDB:
+        """Validates the user's role against the allowed list."""
         if user.group.name not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
