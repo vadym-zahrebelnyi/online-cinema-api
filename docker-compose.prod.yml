@@ -184,6 +184,8 @@ services:
     volumes:
       - ./configs/certbot/www:/var/www/certbot
       - ./configs/certbit/conf:/etc/letsencrypt
+    networks:
+      - online_cinema_network
 
 volumes:
   cinema_db_data:
