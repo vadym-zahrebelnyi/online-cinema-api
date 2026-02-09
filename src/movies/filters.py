@@ -17,23 +17,19 @@ class MovieFilter(Filter):
     """
 
     name__ilike: Optional[str] = Field(
-        None,
-        description="Case-insensitive partial match for movie title"
+        None, description="Case-insensitive partial match for movie title"
     )
 
     year__gte: Optional[int] = Field(
-        None,
-        description="Return movies released in or after this year"
+        None, description="Return movies released in or after this year"
     )
 
     year__lte: Optional[int] = Field(
-        None,
-        description="Return movies released in or before this year"
+        None, description="Return movies released in or before this year"
     )
 
     order_by: Optional[List[str]] = Field(
-        None,
-        description="Sorting fields: name, -name, year, -year"
+        None, description="Sorting fields: name, -name, year, -year"
     )
 
     class Constants(Filter.Constants):
@@ -52,13 +48,11 @@ class GenreFilter(Filter):
     """
 
     name__ilike: Optional[str] = Field(
-        None,
-        description="Case-insensitive partial match for genre name"
+        None, description="Case-insensitive partial match for genre name"
     )
 
     order_by: Optional[List[str]] = Field(
-        None,
-        description="Sorting fields: name, -name"
+        None, description="Sorting fields: name, -name"
     )
 
     class Constants(Filter.Constants):

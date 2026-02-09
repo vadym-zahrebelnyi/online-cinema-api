@@ -13,7 +13,9 @@ from src.movies.exceptions import (
 )
 
 
-async def create_movie(db: AsyncSession, data: schemas.MovieCreateSchema) -> models.MovieDB:
+async def create_movie(
+    db: AsyncSession, data: schemas.MovieCreateSchema
+) -> models.MovieDB:
     """Create a movie with related entities validation."""
     cert = await crud.get_certification_by_id(db, data.certification_id)
     if not cert:
@@ -91,14 +93,11 @@ async def delete_movie(db: AsyncSession, movie_id: int) -> None:
 
 async def get_movies_catalog(db: AsyncSession, filters):
     """Return movies with dynamic filtering and eager-loaded relations."""
-    stmt = (
-        select(models.MovieDB)
-        .options(
-            selectinload(models.MovieDB.genres),
-            selectinload(models.MovieDB.directors),
-            selectinload(models.MovieDB.stars),
-            selectinload(models.MovieDB.certification),
-        )
+    stmt = select(models.MovieDB).options(
+        selectinload(models.MovieDB.genres),
+        selectinload(models.MovieDB.directors),
+        selectinload(models.MovieDB.stars),
+        selectinload(models.MovieDB.certification),
     )
 
     stmt = filters.filter(stmt)

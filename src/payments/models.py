@@ -39,6 +39,7 @@ class PaymentStatusEnum(str, enum.Enum):
         REFUNDED: The funds have been returned to the user (full refund).
         REFUND_REQUESTED: The user has requested a refund, pending administrative approval.
     """
+
     PENDING = "pending"
     SUCCESSFUL = "successful"
     CANCELED = "canceled"
@@ -68,6 +69,7 @@ class PaymentDB(Base):
         payment_items (List[PaymentItemDB]): Collection of individual line items included
             in this payment.
     """
+
     __tablename__ = "payments"
     __table_args__ = (
         CheckConstraint("amount >= 0", name="check_payment_amount_positive"),
@@ -135,6 +137,7 @@ class PaymentItemDB(Base):
         payment (PaymentDB): Relationship to the parent Payment model.
         order_item (OrderItemDB): Relationship to the original OrderItem model.
     """
+
     __tablename__ = "payment_items"
     __table_args__ = (
         UniqueConstraint(

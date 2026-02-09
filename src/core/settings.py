@@ -3,6 +3,26 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """
+    Application configuration management.
+
+    Loads settings from environment variables (or a .env file).
+    Validates types and ensures all required configurations are present.
+
+    Attributes:
+        APP_NAME: The name of the application.
+        API_PREFIX: The global prefix for all API routes (e.g., /api/v1).
+        LOGIN_TIME_DAYS: Session/Token validity duration in days.
+
+        POSTGRES_*: Database connection credentials.
+        SECRET_KEY_*: Keys for JWT token signing and verification.
+        REDIS_*: Redis connection settings.
+        STRIPE_*: Keys for Stripe payment gateway integration.
+        MINIO_*: Credentials for MinIO (S3-compatible storage) management.
+        S3_*: Configuration for object storage (buckets, regions).
+        SMTP_*: Email server configuration for sending notifications.
+    """
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     APP_NAME: str = "online-cinema-api"
@@ -48,6 +68,12 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def DATABASE_URL(self) -> str:  # noqa
+        """
+        Construct the asynchronous PostgreSQL connection string.
+
+        Returns:
+            str: The full SQLAlchemy connection URL (postgresql+asyncpg://...).
+        """
         return (
             f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@"
             f"{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
@@ -56,6 +82,12 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def REDIS_URL(self) -> str:
+        """
+        Construct the Redis connection URL.
+
+        Returns:
+            str: The Redis URL (redis://host:port/0).
+        """
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/0"
 
 
@@ -63,4 +95,10 @@ settings = Settings()
 
 
 def get_settings() -> Settings:
+    """
+    Singleton accessor for application settings.
+
+    Returns:
+        Settings: The loaded configuration instance.
+    """
     return settings
