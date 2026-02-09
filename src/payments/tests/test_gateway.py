@@ -24,6 +24,13 @@ from src.payments.schemas import PaymentGatewayCreateSchema
 
 @pytest.fixture
 def payment_data():
+    """
+    Fixture providing a valid payment data schema for testing.
+
+    Returns:
+        PaymentGatewayCreateSchema: An object containing order_id, user_id,
+        amount (10.50), currency, and email.
+    """
     return PaymentGatewayCreateSchema(
         order_id=123,
         user_id=456,
@@ -35,11 +42,23 @@ def payment_data():
 
 @pytest.fixture
 def gateway():
+    """
+    Fixture to initialize the StripeGateway instance.
+    """
     return StripeGateway()
 
 
 @pytest.mark.asyncio
 async def test_create_checkout_session_success(gateway, payment_data):
+    """
+    Verify that a checkout session is successfully created with valid data.
+
+    This test ensures that:
+    1. The Stripe API is called with the correct parameters.
+    2. The amount is correctly converted from decimal dollars to integer cents
+       (e.g., 10.50 -> 1050).
+    3. The returned schema contains the correct session URL and ID.
+    """
     mock_session = MagicMock()
     mock_session.url = "https://stripe.com/pay/123"
     mock_session.id = "cs_test_123"
@@ -61,7 +80,13 @@ async def test_create_checkout_session_success(gateway, payment_data):
 
 @pytest.mark.asyncio
 async def test_create_session_invalid_request_error(gateway, payment_data):
-    """Test handling of 400 Bad Request from Stripe"""
+    """
+    Test handling of 400 Bad Request errors from Stripe (e.g., invalid currency).
+
+    Expectation:
+        The stripe.InvalidRequestError should be caught and re-raised as
+        an internal PaymentValidationError.
+    """
     with patch(
         "stripe.checkout.Session.create_async", new_callable=AsyncMock
     ) as mock_create:
@@ -77,7 +102,13 @@ async def test_create_session_invalid_request_error(gateway, payment_data):
 
 @pytest.mark.asyncio
 async def test_create_session_auth_error(gateway, payment_data):
-    """Test handling of invalid API key"""
+    """
+    Test handling of authentication errors (e.g., invalid API key).
+
+    Expectation:
+        The stripe.AuthenticationError should be caught and re-raised as
+        an internal PaymentConfigurationError.
+    """
     with patch(
         "stripe.checkout.Session.create_async", new_callable=AsyncMock
     ) as mock_create:
@@ -89,7 +120,13 @@ async def test_create_session_auth_error(gateway, payment_data):
 
 @pytest.mark.asyncio
 async def test_create_session_rate_limit_error(gateway, payment_data):
-    """Test handling of Too Many Requests"""
+    """
+    Test handling of rate limit errors (Too Many Requests).
+
+    Expectation:
+        The stripe.RateLimitError should be caught and re-raised as
+        an internal PaymentConnectionError, indicating temporary unavailability.
+    """
     with patch(
         "stripe.checkout.Session.create_async", new_callable=AsyncMock
     ) as mock_create:
@@ -103,7 +140,13 @@ async def test_create_session_rate_limit_error(gateway, payment_data):
 
 @pytest.mark.asyncio
 async def test_create_session_connection_error(gateway, payment_data):
-    """Test handling of network downtime"""
+    """
+    Test handling of network connectivity issues.
+
+    Expectation:
+        The stripe.APIConnectionError (e.g., timeout, DNS failure) should be
+        caught and re-raised as an internal PaymentConnectionError.
+    """
     with patch(
         "stripe.checkout.Session.create_async", new_callable=AsyncMock
     ) as mock_create:
@@ -115,6 +158,12 @@ async def test_create_session_connection_error(gateway, payment_data):
 
 @pytest.mark.asyncio
 async def test_validate_webhook_success(gateway):
+    """
+    Verify successful validation of a legitimate Stripe webhook.
+
+    This test mocks `stripe.Webhook.construct_event` to simulate a
+    correct signature verification pass.
+    """
     payload = b'{"id": "evt_123"}'
     signature = "valid_signature"
 
@@ -129,6 +178,13 @@ async def test_validate_webhook_success(gateway):
 
 @pytest.mark.asyncio
 async def test_validate_webhook_invalid_signature(gateway):
+    """
+    Test handling of invalid webhook signatures.
+
+    Expectation:
+        If `stripe.Webhook.construct_event` raises SignatureVerificationError,
+        it should be wrapped in a PaymentWebhookError.
+    """
     with patch("stripe.Webhook.construct_event") as mock_construct:
         mock_construct.side_effect = SignatureVerificationError(
             "Bad sig", sig_header="x"
@@ -142,6 +198,13 @@ async def test_validate_webhook_invalid_signature(gateway):
 
 @pytest.mark.asyncio
 async def test_validate_webhook_invalid_payload(gateway):
+    """
+    Test handling of malformed JSON payloads in webhooks.
+
+    Expectation:
+        If `stripe.Webhook.construct_event` raises a ValueError (due to bad JSON),
+        it should be wrapped in a PaymentWebhookError.
+    """
     with patch("stripe.Webhook.construct_event") as mock_construct:
         mock_construct.side_effect = ValueError("Bad JSON")
 
@@ -153,6 +216,12 @@ async def test_validate_webhook_invalid_payload(gateway):
 
 @pytest.mark.asyncio
 async def test_refund_payment_success(gateway):
+    """
+    Verify that a refund request is correctly sent to Stripe.
+
+    Ensures that the `Refund.create_async` method is called with the
+    correct `payment_intent` ID.
+    """
     payment_intent_id = "pi_test_12345"
     mock_refund_response = {"id": "re_123", "status": "succeeded"}
 
@@ -167,6 +236,12 @@ async def test_refund_payment_success(gateway):
 
 @pytest.mark.asyncio
 async def test_refund_payment_invalid_request(gateway):
+    """
+    Test handling of invalid refund requests (e.g., already refunded).
+
+    Expectation:
+        stripe.InvalidRequestError should be mapped to PaymentValidationError.
+    """
     payment_intent_id = "pi_invalid"
 
     with patch("stripe.Refund.create_async", new_callable=AsyncMock) as mock_refund:
@@ -183,6 +258,13 @@ async def test_refund_payment_invalid_request(gateway):
 
 @pytest.mark.asyncio
 async def test_refund_payment_general_stripe_error(gateway):
+    """
+    Test handling of generic Stripe errors during refund.
+
+    Expectation:
+        Any unspecified stripe.StripeError should be caught and raised as
+        a generic PaymentError.
+    """
     payment_intent_id = "pi_test_error"
 
     with patch("stripe.Refund.create_async", new_callable=AsyncMock) as mock_refund:

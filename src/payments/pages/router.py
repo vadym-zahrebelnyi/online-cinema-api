@@ -4,8 +4,31 @@ from fastapi.responses import HTMLResponse
 router = APIRouter(tags=["Pages"])
 
 
-@router.get("/payment/success", response_class=HTMLResponse)
+@router.get(
+    "/payment/success",
+    response_class=HTMLResponse,
+    summary="Render payment success page",
+    responses={
+        200: {
+            "description": "HTML confirmation page",
+            "content": {"text/html": {}},
+        }
+    },
+)
 async def payment_success_page(session_id: str):
+    """
+    Serve the static HTML page for successful payment confirmation.
+
+    This endpoint acts as the 'success_url' target for the Stripe Checkout session.
+    It displays a confirmation message and the transaction session ID to the user.
+
+    Args:
+        session_id (str): The unique session identifier returned by Stripe
+            as a query parameter.
+
+    Returns:
+        HTMLResponse: A rendered HTML page with success details.
+    """
     html_content = f"""
     <!DOCTYPE html>
     <html>
@@ -68,8 +91,28 @@ async def payment_success_page(session_id: str):
     return HTMLResponse(content=html_content, status_code=200)
 
 
-@router.get("/payment/cancel", response_class=HTMLResponse)
+@router.get(
+    "/payment/cancel",
+    response_class=HTMLResponse,
+    summary="Render payment cancellation page",
+    responses={
+        200: {
+            "description": "HTML cancellation page",
+            "content": {"text/html": {}},
+        }
+    },
+)
 async def payment_cancel_page():
+    """
+    Serve the static HTML page for payment cancellation.
+
+    This endpoint acts as the 'cancel_url' target for the Stripe Checkout session.
+    It is rendered when the user explicitly cancels the payment process or backtracks
+    during checkout.
+
+    Returns:
+        HTMLResponse: A rendered HTML page indicating the payment was not completed.
+    """
     return HTMLResponse(
         content="<h1>Payment Cancelled</h1><p>You can try again anytime.</p>"
     )

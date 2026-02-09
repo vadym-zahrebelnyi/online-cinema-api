@@ -58,6 +58,7 @@ class PaymentResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    user_id: int
     amount: Annotated[Decimal, Field(decimal_places=2)]
     status: PaymentStatusEnum
     created_at: datetime
