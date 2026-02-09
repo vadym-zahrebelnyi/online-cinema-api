@@ -35,6 +35,7 @@ class StripeGateway(BasePaymentGateway):
     Attributes:
         stripe.api_key: The secret key used to authenticate with Stripe.
     """
+
     async def create_checkout_session(
         self, session_data: PaymentGatewayCreateSchema
     ) -> PaymentGatewayResponseSchema:

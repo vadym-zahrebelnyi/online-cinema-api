@@ -13,13 +13,47 @@ from src.cart.schemas import CartItemReadSchema, CartReadSchema, MovieCartReadSc
 
 
 class CartService:
+    """
+    Business logic for managing shopping carts.
+
+    This service implements a 'Hybrid Cart' pattern:
+    1. **Anonymous Users**: Cart data is stored in Redis (fast, ephemeral, expires in 7 days).
+       The cart is identified by a 'cart_id' cookie (anon_id).
+    2. **Authenticated Users**: Cart data is stored in PostgreSQL (persistent).
+
+    It also handles the merging strategy when an anonymous user logs in, moving
+    their Redis items into the permanent database cart.
+    """
+
     def __init__(self, repo: CartCRUD, redis: Redis):
+        """
+        Initialize the service.
+
+        Args:
+            repo (CartCRUD): Repository for database operations.
+            redis (Redis): Redis client for anonymous cart operations.
+        """
         self.repo = repo
         self.redis = redis
 
     async def get_cart(
         self, user_id: int | None, anon_id: str | None
     ) -> CartReadSchema:
+        """
+        Retrieve the current state of the cart.
+
+        Priority logic:
+        - If `user_id` is provided, fetches the persistent cart from the DB.
+        - If `user_id` is None but `anon_id` exists, fetches items from Redis.
+
+        Args:
+            user_id (int | None): ID of the logged-in user.
+            anon_id (str | None): ID from the anonymous cookie.
+
+        Returns:
+            CartReadSchema: A unified schema containing items and total price,
+            regardless of the storage backend.
+        """
         items = []
         cart_id = None
 
@@ -58,6 +92,24 @@ class CartService:
         )
 
     async def add_movie(self, movie_id: int, user_id: int | None, anon_id: str | None):
+        """
+        Add a movie to the cart.
+
+        Performs validation checks:
+        1. Does the movie exist?
+        2. Does the user already own this movie? (DB users only)
+        3. Is the movie already in the cart?
+
+        Args:
+            movie_id (int): ID of the movie to add.
+            user_id (int | None): ID of the logged-in user.
+            anon_id (str | None): ID from the anonymous cookie.
+
+        Raises:
+            MovieNotFoundError: If movie_id is invalid.
+            MovieAlreadyOwnedError: If the user already purchased this content.
+            MovieAlreadyInCartError: If the item is already in the cart.
+        """
         movie = await self.repo.get_movie(movie_id)
         if not movie:
             raise MovieNotFoundError()
@@ -88,6 +140,17 @@ class CartService:
     async def remove_item(
         self, movie_id: int, user_id: int | None, anon_id: str | None
     ):
+        """
+        Remove a specific movie from the cart.
+
+        Handles removal from either the Database (for logged-in users) or
+        Redis (for anonymous users).
+
+        Args:
+            movie_id (int): ID of the movie to remove.
+            user_id (int | None): Logged-in user ID.
+            anon_id (str | None): Anonymous cookie ID.
+        """
         if user_id:
             cart = await self.repo.get_cart_by_user(user_id)
             if cart:
@@ -98,6 +161,13 @@ class CartService:
             await self.redis.srem(key, str(movie_id))
 
     async def clear_cart(self, user_id: int | None, anon_id: str | None):
+        """
+        Remove all items from the cart.
+
+        Args:
+            user_id (int | None): Logged-in user ID.
+            anon_id (str | None): Anonymous cookie ID.
+        """
         if user_id:
             cart = await self.repo.get_cart_by_user(user_id)
             if cart:
@@ -108,6 +178,22 @@ class CartService:
             await self.redis.delete(key)
 
     async def merge_anon_cart(self, anon_id: str, user_id: int):
+        """
+        Merge an anonymous Redis cart into a persistent User cart.
+
+        This is typically called immediately after user registration or login.
+        It iterates through items in the Redis cart and adds them to the database
+        cart, skipping items that:
+        1. Are invalid (movies deleted from DB).
+        2. The user already owns.
+        3. Are already in the user's persistent cart.
+
+        After merging, the Redis cart is deleted.
+
+        Args:
+            anon_id (str): The anonymous cookie ID.
+            user_id (int): The ID of the authenticated user.
+        """
         redis_key = f"cart:{anon_id}"
 
         anon_movie_ids_raw = await self.redis.smembers(redis_key)
