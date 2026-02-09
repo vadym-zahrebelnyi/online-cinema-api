@@ -26,12 +26,14 @@ async def get_movie_by_uuid(db: AsyncSession, movie_uuid) -> MovieDB | None:
     result = await db.execute(select(MovieDB).where(MovieDB.uuid == movie_uuid))
     return result.scalar_one_or_none()
 
+
 async def create_movie(db: AsyncSession, movie: MovieDB) -> MovieDB:
     """Create a new movie in the database."""
     db.add(movie)
     await db.commit()
     await db.refresh(movie)
     return movie
+
 
 async def update_movie(db: AsyncSession, movie: MovieDB) -> MovieDB:
     """Update an existing movie in the database."""
@@ -40,12 +42,16 @@ async def update_movie(db: AsyncSession, movie: MovieDB) -> MovieDB:
     await db.refresh(movie)
     return movie
 
+
 async def delete_movie(db: AsyncSession, movie: MovieDB) -> None:
     """Delete a movie from the database."""
     await db.delete(movie)
     await db.commit()
 
-async def list_movies(db: AsyncSession, skip: int = 0, limit: int = 100) -> list[MovieDB]:
+
+async def list_movies(
+    db: AsyncSession, skip: int = 0, limit: int = 100
+) -> list[MovieDB]:
     """Return a list of movies with optional pagination."""
     result = await db.execute(select(MovieDB).offset(skip).limit(limit))
     return result.scalars().all()
@@ -92,7 +98,10 @@ async def delete_genre(db: AsyncSession, genre: GenreDB) -> None:
     await db.delete(genre)
     await db.commit()
 
-async def get_certification_by_id(db: AsyncSession, cert_id: int) -> CertificationDB | None:
+
+async def get_certification_by_id(
+    db: AsyncSession, cert_id: int
+) -> CertificationDB | None:
     """Get a certification by its ID."""
     return await db.get(CertificationDB, cert_id)
 
@@ -113,7 +122,6 @@ async def get_certification_with_movies(
 async def create_certification(
     db: AsyncSession, cert: CertificationDB
 ) -> CertificationDB:
-async def create_certification(db: AsyncSession, cert: CertificationDB) -> CertificationDB:
     """Create a new certification."""
     db.add(cert)
     await db.commit()

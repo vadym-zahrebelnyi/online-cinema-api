@@ -50,6 +50,7 @@ movie_directors = Table(
 
 class CertificationDB(Base):
     """Represents a movie certification (e.g., PG-13, R)."""
+
     __tablename__ = "certifications"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -65,6 +66,7 @@ class CertificationDB(Base):
 
 class GenreDB(Base):
     """Represents a movie genre (e.g., Action, Drama)."""
+
     __tablename__ = "genres"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -81,6 +83,7 @@ class GenreDB(Base):
 
 class StarDB(Base):
     """Represents an actor associated with movies."""
+
     __tablename__ = "stars"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -97,6 +100,7 @@ class StarDB(Base):
 
 class DirectorDB(Base):
     """Represents a director associated with movies."""
+
     __tablename__ = "directors"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -113,6 +117,7 @@ class DirectorDB(Base):
 
 class MovieDB(Base):
     """Represents a movie with its details, genres, stars, and directors."""
+
     __tablename__ = "movies"
     __table_args__ = (
         UniqueConstraint("name", "year", "time", name="uq_movie_identity"),
