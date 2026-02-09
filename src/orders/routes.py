@@ -29,7 +29,7 @@ from src.orders.crud import (
     get_orders_by_user,
 )
 from src.orders.filters import OrderFilter
-from src.orders.schemas import CancelShema, OrderReadSchema
+from src.orders.schemas import CancelSchema, OrderReadSchema
 
 router = APIRouter()
 
@@ -107,7 +107,7 @@ async def create_order_endpoint(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.patch("/{order_id}/cancel", response_model=CancelShema)
+@router.patch("/{order_id}/cancel", response_model=CancelSchema)
 async def cancel_order_endpoint(
     order_id: int, db: Annotated[AsyncSession, Depends(get_db)]
 ):
@@ -128,4 +128,4 @@ async def cancel_order_endpoint(
         await cancel_order(db, order_id)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return CancelShema(message="Order canceled")
+    return CancelSchema(message="Order canceled")
