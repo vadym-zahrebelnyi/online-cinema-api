@@ -57,6 +57,10 @@ router = APIRouter()
     "/register/",
     response_model=RegisterResponseSchema,
     status_code=status.HTTP_201_CREATED,
+    responses={
+        409: {"description": "Conflict - User with this email already exists."},
+        500: {"description": "Internal Server Error - Default group not found."}
+    }
 )
 async def register_user(
     user_data: RegisterRequestSchema,
@@ -86,6 +90,9 @@ async def register_user(
     "/activate/",
     response_model=MessageResponseSchema,
     status_code=status.HTTP_200_OK,
+    responses={
+        400: {"description": "Bad Request - Invalid token or account already active."}
+    }
 )
 async def activate_account(
     activation_data: ActivateAccountRequestSchema,
@@ -109,6 +116,9 @@ async def activate_account(
     response_model=TokenPairSchema,
     status_code=status.HTTP_200_OK,
     summary="Login via JSON (Standard)",
+    responses={
+        401: {"description": "Unauthorized - Invalid email or password."}
+    }
 )
 async def login_user(
     login_data: LoginRequestSchema,
@@ -172,6 +182,10 @@ async def login_for_access_token(
     "/refresh/",
     response_model=TokenPairSchema,
     status_code=status.HTTP_200_OK,
+    responses={
+        401: {"description": "Unauthorized - Invalid or expired refresh token."},
+        404: {"description": "Not Found - User associated with token not found."}
+    }
 )
 async def refresh_access_token(
     token_data: RefreshTokenRequestSchema,
@@ -196,6 +210,9 @@ async def refresh_access_token(
 @router.post(
     "/password-reset/request/",
     response_model=MessageResponseSchema,
+    responses={
+        200: {"description": "Success - Instructions sent if email exists."}
+    }
 )
 async def request_password_reset(
     data: ForgotPasswordRequestSchema,
@@ -213,6 +230,9 @@ async def request_password_reset(
 @router.post(
     "/reset-password/complete/",
     response_model=MessageResponseSchema,
+    responses={
+        400: {"description": "Bad Request - Invalid or expired reset token."}
+    }
 )
 async def reset_password_complete(
     data: ResetPasswordRequestSchema,
@@ -258,6 +278,9 @@ async def change_password(
     "/me/",
     response_model=UserResponseSchema,
     summary="Get current user info",
+    responses={
+        401: {"description": "Unauthorized - Token missing or invalid."}
+    }
 )
 async def get_me(user: Annotated[UserDB, Depends(get_current_user)]):
     """
@@ -277,6 +300,10 @@ async def get_me(user: Annotated[UserDB, Depends(get_current_user)]):
     "/me/profile/",
     response_model=UserProfileResponseSchema,
     summary="Update my profile",
+    responses={
+        401: {"description": "Unauthorized"},
+        400: {"description": "Bad Request - Invalid data or file format."}
+    }
 )
 async def update_my_profile(
     profile_data: Annotated[ProfileUpdateSchema, Depends(ProfileUpdateSchema.as_form)],
@@ -298,6 +325,10 @@ async def update_my_profile(
     "/logout/",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Logout user",
+    responses={
+        204: {"description": "No Content - Successfully logged out."},
+        401: {"description": "Unauthorized"}
+    }
 )
 async def logout(
     token_data: RefreshTokenRequestSchema,
@@ -314,6 +345,10 @@ async def logout(
     "/admin/users/{user_id}/",
     response_model=UserResponseSchema,
     dependencies=[Depends(allow_admin)],
+    responses={
+        403: {"description": "Forbidden - Only admins can access this."},
+        404: {"description": "Not Found - User not found."}
+    }
 )
 async def admin_update_user(
     user_id: int,
