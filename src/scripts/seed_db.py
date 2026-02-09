@@ -16,7 +16,6 @@ def get_password_hash(password: str) -> str:
 
 async def seed_db():
     async with SessionLocal() as session:
-
         group_mapping = {}
         groups = ["USER", "MODERATOR", "ADMIN"]
 

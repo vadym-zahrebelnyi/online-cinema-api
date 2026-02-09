@@ -46,9 +46,10 @@ class GenderEnum(str, enum.Enum):
 
 class UserGroupDB(Base):
     """
-        Represents user role groups within the system.
-        Defines access levels such as 'admin', 'moderator', or 'user'.
+    Represents user role groups within the system.
+    Defines access levels such as 'admin', 'moderator', or 'user'.
     """
+
     __tablename__ = "user_groups"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -60,10 +61,11 @@ class UserGroupDB(Base):
 
 class UserDB(Base):
     """
-        The core user model for the application.
-        Handles authentication data, password hashing mechanisms,
-        and serves as the central point for profiles, orders, and security tokens.
+    The core user model for the application.
+    Handles authentication data, password hashing mechanisms,
+    and serves as the central point for profiles, orders, and security tokens.
     """
+
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -129,7 +131,7 @@ class UserDB(Base):
 
     def has_group(self, group_name: UserGroupEnum) -> bool:
         """
-            Checks if the user belongs to a specific security group.
+        Checks if the user belongs to a specific security group.
         """
         return self.group.name == group_name
 
@@ -174,9 +176,10 @@ class UserDB(Base):
 
 class UserProfileDB(Base):
     """
-        Stores extended personal information for a user.
-        Contains non-authentication data like names, gender, avatar, and bio.
+    Stores extended personal information for a user.
+    Contains non-authentication data like names, gender, avatar, and bio.
     """
+
     __tablename__ = "user_profiles"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -203,10 +206,11 @@ class UserProfileDB(Base):
 
 class TokenBaseDB(Base):
     """
-        An abstract base class for various security tokens.
-        Provides common fields including the secure token string,
-        expiration timestamp, and the associated user ID.
+    An abstract base class for various security tokens.
+    Provides common fields including the secure token string,
+    expiration timestamp, and the associated user ID.
     """
+
     __abstract__ = True
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -246,9 +250,10 @@ class PasswordResetTokenDB(TokenBaseDB):
 
 class RefreshTokenDB(TokenBaseDB):
     """
-        Represents long-lived refresh tokens used to obtain
-        new access tokens without re-authenticating the user.
+    Represents long-lived refresh tokens used to obtain
+    new access tokens without re-authenticating the user.
     """
+
     __tablename__ = "refresh_tokens"
 
     token: Mapped[str] = mapped_column(

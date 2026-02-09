@@ -14,10 +14,10 @@ api_router = APIRouter(prefix=settings.API_PREFIX)
 
 for router, prefix, tags in (
     (accounts_router, "/accounts", ["Accounts"]),
+    (movies_router, "/movies", ["Movies"]),
     (cart_router, "/cart", ["Cart"]),
     (orders_router, "/orders", ["Orders"]),
     (payments_router, "/payments", ["Payments"]),
-    (movies_router, "/movies", ["Movies"]),
 ):
     api_router.include_router(router, prefix=prefix, tags=tags)
 

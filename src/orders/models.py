@@ -42,6 +42,7 @@ class OrderStatusEnum(str, Enum):
         PAID: Order has been successfully paid.
         CANCELLED: Order was cancelled.
     """
+
     PENDING = "pending"
     PAID = "paid"
     CANCELLED = "cancelled"
@@ -63,6 +64,7 @@ class OrderDB(Base):
         items (list[OrderItemDB]): The items (movies) included in the order.
         payments (list[PaymentDB]): Payments associated with this order.
     """
+
     __tablename__ = "orders"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -121,6 +123,7 @@ class OrderItemDB(Base):
         UniqueConstraint(order_id, movie_id): Prevents adding the same movie
         multiple times to the same order.
     """
+
     __tablename__ = "order_items"
 
     __table_args__ = (UniqueConstraint("order_id", "movie_id", name="uix_order_movie"),)
