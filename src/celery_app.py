@@ -23,6 +23,6 @@ celery_app.conf.update(
 celery_app.conf.beat_schedule = {
     "cleanup-expired-tokens-every-hour": {
         "task": "src.accounts.tasks.cleanup_expired_tokens_task",
-        "schedule": crontab(minute="*"),
+        "schedule": crontab(minute=0),
     },
 }

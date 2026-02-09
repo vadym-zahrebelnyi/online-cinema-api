@@ -38,18 +38,20 @@ class CartCRUD:
         await self.db.commit()
         return item
 
-    async def has_purchased_movie(self, user_id: int, movie_id: int) -> bool:
+    async def is_movie_available_to_buy(self, user_id: int, movie_id: int) -> bool:
         stmt = (
             select(exists(1))
             .select_from(OrderItemDB)
             .join(OrderDB, OrderItemDB.order_id == OrderDB.id)
             .where(
                 OrderDB.user_id == user_id,
-                OrderDB.status == OrderStatusEnum.PAID,
+                OrderDB.status.in_([OrderStatusEnum.PAID, OrderStatusEnum.PENDING]),
                 OrderItemDB.movie_id == movie_id,
             )
         )
-        return await self.db.scalar(stmt) or False
+        is_locked = await self.db.scalar(stmt) or False
+
+        return is_locked
 
     async def item_exists(self, cart_id: int, movie_id: int) -> bool:
         stmt = select(
