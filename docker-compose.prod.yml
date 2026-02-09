@@ -141,16 +141,6 @@ services:
         - online_cinema_network
     restart: unless-stopped
 
-  stripe-cli:
-    image: stripe/stripe-cli:latest
-    container_name: stripe_cli
-    command: listen --forward-to web:8000/api/v1/payments/webhooks/stripe --api-key ${STRIPE_SECRET_KEY}
-    env_file:
-      - .env
-    depends_on:
-      - web
-    restart: on-failure
-
   mailhog:
     image: mailhog/mailhog
     container_name: mailhog
@@ -169,7 +159,7 @@ services:
     volumes:
       - ./configs/nginx/nginx.conf:/etc/nginx/conf.d/nginx.conf:ro
       - ./configs/certbot/www:/var/www/certbot
-      - ./configs/certbit/conf:/etc/letsencrypt
+      - ./configs/certbot/conf:/etc/letsencrypt
     depends_on:
       - web
     env_file:
@@ -183,7 +173,7 @@ services:
     container_name: certbot
     volumes:
       - ./configs/certbot/www:/var/www/certbot
-      - ./configs/certbit/conf:/etc/letsencrypt
+      - ./configs/certbot/conf:/etc/letsencrypt
     networks:
       - online_cinema_network
 

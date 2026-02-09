@@ -94,3 +94,7 @@ cython_debug/
 poetry.toml
 .ruff_cache/
 pyrightconfig.json
+
+configs/certbot/*/*
+!configs/certbot/*/.gitkeep
+
