@@ -94,6 +94,8 @@ services:
   minio:
     image: minio/minio:latest
     container_name: minio-cinema
+    ports:
+      - "9001:9001"
     command: server --console-address ":9001" /data
     env_file:
       - .env
@@ -106,6 +108,7 @@ services:
       retries: 5
     networks:
       - online_cinema_network
+    restart: unless-stopped
 
   minio_setup:
     build:
@@ -136,23 +139,13 @@ services:
       retries: 5
     networks:
         - online_cinema_network
-
-  stripe-cli:
-    image: stripe/stripe-cli:latest
-    container_name: stripe_cli
-    command: listen --forward-to web:8000/api/v1/payments/webhooks/stripe --api-key ${STRIPE_SECRET_KEY}
-    env_file:
-      - .env
-    depends_on:
-      - web
-    restart: on-failure
+    restart: unless-stopped
 
   mailhog:
     image: mailhog/mailhog
     container_name: mailhog
-    ports:
-      - "1025:1025"
-      - "8025:8025"
+    networks:
+      - online_cinema_network
     restart: unless-stopped
 
   nginx:
@@ -162,8 +155,11 @@ services:
     container_name: nginx
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./configs/nginx/nginx.conf:/etc/nginx/conf.d/nginx.conf:ro
+      - ./configs/certbot/www:/var/www/certbot
+      - ./configs/certbot/conf:/etc/letsencrypt
     depends_on:
       - web
     env_file:
@@ -171,6 +167,15 @@ services:
     networks:
       - online_cinema_network
     restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./configs/certbot/www:/var/www/certbot
+      - ./configs/certbot/conf:/etc/letsencrypt
+    networks:
+      - online_cinema_network
 
 volumes:
   cinema_db_data:
