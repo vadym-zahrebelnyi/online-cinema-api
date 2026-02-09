@@ -8,41 +8,42 @@ class Settings(BaseSettings):
     APP_NAME: str = "online-cinema-api"
     API_PREFIX: str = "/api/v1"
 
-    POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = "postgres"
-    POSTGRES_HOST: str = "localhost"
-    POSTGRES_PORT: int = 5432
-    POSTGRES_DB: str = "test_cinema"
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_HOST: str
+    POSTGRES_PORT: int
+    POSTGRES_DB: str
 
     LOGIN_TIME_DAYS: int = 7
 
-    SECRET_KEY_ACCESS: str = "test_access_secret"
-    SECRET_KEY_REFRESH: str = "test_refresh_secret"
-    JWT_SIGNING_ALGORITHM: str = "HS256"
+    SECRET_KEY_ACCESS: str
+    SECRET_KEY_REFRESH: str
+    JWT_SIGNING_ALGORITHM: str
 
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
+    REDIS_HOST: str
+    REDIS_PORT: int
 
-    STRIPE_SECRET_KEY: str = "sk_test_123"
-    STRIPE_PUBLISHABLE_KEY: str = "pk_test_123"
-    STRIPE_WEBHOOK_SECRET: str = "whsec_test_123"
+    STRIPE_SECRET_KEY: str
+    STRIPE_PUBLISHABLE_KEY: str
+    STRIPE_WEBHOOK_SECRET: str
 
-    MINIO_ROOT_USER: str = "minioadmin"
-    MINIO_ROOT_PASSWORD: str = "minioadmin"
-    S3_URL: str = "http://localhost:9000"
-    S3_BUCKET_NAME: str = "test-bucket"
-    S3_ACCESS_KEY: str = "minioadmin"
-    S3_SECRET_KEY: str = "minioadmin"
-    S3_REGION: str = "us-east-1"
+    MINIO_ROOT_USER: str
+    MINIO_ROOT_PASSWORD: str
 
-    SMTP_HOST: str = "localhost"
-    SMTP_PORT: int = 1025
+    S3_URL: str
+    S3_BUCKET_NAME: str
+    S3_ACCESS_KEY: str
+    S3_SECRET_KEY: str
+    S3_REGION: str
+
+    SMTP_HOST: str
+    SMTP_PORT: int
     SMTP_USER: str | None = None
     SMTP_PASSWORD: str | None = None
-    EMAILS_FROM_EMAIL: str = "info@example.com"
-    EMAILS_FROM_NAME: str = "OnlineCinema"
+    EMAILS_FROM_EMAIL: str
+    EMAILS_FROM_NAME: str
 
-    DOMAIN_NAME: str = "http://127.0.0.1:8000"
+    DOMAIN_NAME: str
 
     @computed_field
     @property
