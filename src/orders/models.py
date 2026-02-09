@@ -1,3 +1,23 @@
+"""
+Module: orders.models
+
+This module contains the SQLAlchemy ORM models for managing orders
+in the online cinema system. It defines the database tables, relationships,
+and enumerations related to orders, order items, and their statuses.
+
+Classes:
+    - OrderStatusEnum: Enumeration of possible order statuses.
+    - OrderDB: Represents a user's order with items and payments.
+    - OrderItemDB: Represents individual items (movies) within an order.
+
+Relationships:
+    - OrderDB -> UserDB: Many-to-One (an order belongs to a user)
+    - OrderDB -> OrderItemDB: One-to-Many (an order has multiple items)
+    - OrderDB -> PaymentDB: One-to-Many (an order can have multiple payments)
+    - OrderItemDB -> MovieDB: Many-to-One (an item is associated with a movie)
+    - OrderItemDB -> PaymentItemDB: One-to-Many (an item can have multiple payment records)
+"""
+
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
@@ -14,12 +34,35 @@ if TYPE_CHECKING:
 
 
 class OrderStatusEnum(str, Enum):
+    """
+    Enum for tracking the status of an order.
+
+    Attributes:
+        PENDING: Order is created but not yet paid.
+        PAID: Order has been successfully paid.
+        CANCELLED: Order was cancelled.
+    """
     PENDING = "pending"
     PAID = "paid"
     CANCELLED = "cancelled"
 
 
 class OrderDB(Base):
+    """
+    Database model representing a user's order.
+
+    Attributes:
+        id (int): Primary key of the order.
+        user_id (int): Foreign key to the user who placed the order.
+        created_at (datetime): Timestamp when the order was created.
+        status (OrderStatusEnum): Current status of the order.
+        total_amount (Decimal): Total amount for the order.
+
+    Relationships:
+        user (UserDB): The user who owns this order.
+        items (list[OrderItemDB]): The items (movies) included in the order.
+        payments (list[PaymentDB]): Payments associated with this order.
+    """
     __tablename__ = "orders"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -45,7 +88,7 @@ class OrderDB(Base):
     total_amount: Mapped[Decimal] = mapped_column(
         Numeric(10, 2),
         nullable=False,
-    )  # TODO hybrid property or dynamic calculation
+    )
 
     user = relationship("UserDB", back_populates="orders")
 
@@ -60,6 +103,24 @@ class OrderDB(Base):
 
 
 class OrderItemDB(Base):
+    """
+    Database model representing an individual item (movie) within an order.
+
+    Attributes:
+        id (int): Primary key of the order item.
+        order_id (int): Foreign key to the associated order.
+        movie_id (int): Foreign key to the movie included in the order.
+        price_at_order (Decimal): Price of the movie at the time of order.
+
+    Relationships:
+        order (OrderDB): The parent order of this item.
+        movie (MovieDB): The movie associated with this item.
+        payment_items (list[PaymentItemDB]): Payment records for this item.
+
+    Constraints:
+        UniqueConstraint(order_id, movie_id): Prevents adding the same movie
+        multiple times to the same order.
+    """
     __tablename__ = "order_items"
 
     __table_args__ = (UniqueConstraint("order_id", "movie_id", name="uix_order_movie"),)

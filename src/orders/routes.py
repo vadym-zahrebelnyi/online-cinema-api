@@ -1,3 +1,16 @@
+"""
+Module: orders.router
+
+This module defines FastAPI routes for managing orders in the online cinema system.
+It includes endpoints for users to create orders from their cart, view their orders,
+and for admins to view all orders with filtering. Users can also cancel orders.
+
+Endpoints:
+    - GET /me: Retrieve all orders for the current authenticated user.
+    - GET /admin/all: Retrieve all orders with filtering (admin only).
+    - POST /: Create a new order from the current user's cart.
+    - PATCH /{order_id}/cancel: Cancel an order by its ID.
+"""
 from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -29,7 +42,16 @@ async def get_my_orders_endpoint(
     current_user: Annotated[UserDB, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    """Get all user's orders"""
+    """
+    Retrieve all orders for the currently authenticated user.
+
+    Args:
+        current_user (UserDB): The currently authenticated user (injected by Depends).
+        db (AsyncSession): Async database session (injected by Depends).
+
+    Returns:
+        List[OrderReadSchema]: List of orders belonging to the current user.
+    """
     return await get_orders_by_user(db, current_user.id)
 
 
@@ -39,7 +61,17 @@ async def get_all_orders_admin(
     db: Annotated[AsyncSession, Depends(get_db)],
     _: Annotated[UserDB, Depends(allow_admin)],
 ):
-    """Get all orders for admin"""
+    """
+    Retrieve all orders in the system with optional filters. Admin-only endpoint.
+
+    Args:
+        filters (OrderFilter): Filter criteria for orders (status, user_id, dates).
+        db (AsyncSession): Async database session.
+        _ (UserDB): Admin user verification (dependency, not used directly).
+
+    Returns:
+        List[OrderReadSchema]: List of orders matching the filters.
+    """
     return await get_all_orders_filtered(db, filters)
 
 
@@ -50,7 +82,24 @@ async def create_order_endpoint(
     cart_service: Annotated[CartService, Depends(get_cart_service)],
 ):
     """
-    Create an order from user's cart items
+    Create a new order from the current user's cart items.
+
+    Steps:
+        1. Validate the user's cart is not empty.
+        2. Check for previously purchased or pending movies.
+        3. Create an order and associated order items.
+        4. Clear the user's cart.
+
+    Args:
+        current_user (UserDB): The currently authenticated user.
+        db (AsyncSession): Async database session.
+        cart_service (CartService): Service for cart management.
+
+    Raises:
+        HTTPException 400: If the cart is empty or other order creation errors occur.
+
+    Returns:
+        OrderReadSchema: The newly created order with its items.
     """
     try:
         return await create_order(db, current_user.id, cart_service)
@@ -63,7 +112,17 @@ async def cancel_order_endpoint(
     order_id: int, db: Annotated[AsyncSession, Depends(get_db)]
 ):
     """
-    Cancel order by ID
+    Cancel an order by its ID.
+
+    Args:
+        order_id (int): ID of the order to cancel.
+        db (AsyncSession): Async database session.
+
+    Raises:
+        HTTPException 400: If the order does not exist or cannot be cancelled.
+
+    Returns:
+        CancelShema: Confirmation message indicating the order was cancelled.
     """
     try:
         await cancel_order(db, order_id)
