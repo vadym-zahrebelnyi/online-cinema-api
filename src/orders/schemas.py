@@ -26,6 +26,7 @@ class OrderReadSchema(BaseModel):
     """Schema for reading an order, including items"""
 
     id: int
+    user_id: int
     created_at: datetime
     total_amount: Annotated[Decimal, Field(max_digits=10, decimal_places=2)]
     status: OrderStatusEnum
