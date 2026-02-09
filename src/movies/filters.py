@@ -1,8 +1,9 @@
-from typing import Optional, List
+from typing import List, Optional
+
 from fastapi_filter.contrib.sqlalchemy import Filter
 from pydantic import Field
 
-from .models import MovieDB, GenreDB
+from .models import GenreDB, MovieDB
 
 
 class MovieFilter(Filter):

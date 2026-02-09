@@ -1,8 +1,8 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_filter import FilterDepends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.accounts.dependencies import allow_admin, allow_moderator
 from src.core.database import get_db
@@ -12,7 +12,7 @@ from src.movies.exceptions import (
     GenreNotFoundException,
     MovieNotFoundException,
 )
-from src.movies.filters import MovieFilter, GenreFilter
+from src.movies.filters import GenreFilter, MovieFilter
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 router = APIRouter(tags=["Movies"])
