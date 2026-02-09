@@ -63,7 +63,7 @@ class CartService:
             raise MovieNotFoundError()
 
         if user_id:
-            already_owned = await self.repo.has_purchased_movie(user_id, movie_id)
+            already_owned = await self.repo.is_movie_available_to_buy(user_id, movie_id)
             if already_owned:
                 raise MovieAlreadyOwnedError()
 
@@ -130,7 +130,7 @@ class CartService:
         for movie in valid_movies:
             movie_id = movie.id
 
-            is_owned = await self.repo.has_purchased_movie(user_id, movie_id)
+            is_owned = await self.repo.is_movie_available_to_buy(user_id, movie_id)
             if is_owned:
                 continue
 
