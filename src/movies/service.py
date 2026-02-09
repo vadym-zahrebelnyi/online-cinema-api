@@ -83,11 +83,12 @@ async def update_movie(
 
 async def delete_movie(db: AsyncSession, movie_id: int) -> None:
     """Delete a movie if it is not referenced by orders."""
-    movie = await crud.get_movie_by_id(db, movie_id)
+    movie = await crud.get_movie_with_orders(db, movie_id)
     if not movie:
         raise MovieNotFoundException()
     if movie.order_items:
         raise MovieHasOrdersException()
+
     await crud.delete_movie(db, movie)
 
 
@@ -139,7 +140,7 @@ async def get_genre(
 
 async def delete_genre(db: AsyncSession, genre_id: int) -> None:
     """Delete a genre if it is not used by movies."""
-    genre = await crud.get_genre_by_id(db, genre_id)
+    genre = await crud.get_genre_with_movies(db, genre_id)
     if not genre:
         raise GenreNotFoundException()
     if genre.movies:
@@ -171,7 +172,7 @@ async def get_certification(
 
 async def delete_certification(db: AsyncSession, cert_id: int) -> None:
     """Delete certification if unused."""
-    cert = await crud.get_certification_by_id(db, cert_id)
+    cert = await crud.get_certification_with_movies(db, cert_id)
     if not cert:
         raise CertificationNotFoundException()
     if cert.movies:

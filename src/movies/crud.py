@@ -1,5 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.movies.models import CertificationDB, GenreDB, MovieDB
 
@@ -7,6 +8,18 @@ from src.movies.models import CertificationDB, GenreDB, MovieDB
 async def get_movie_by_id(db: AsyncSession, movie_id: int) -> MovieDB | None:
     """Get a movie by its integer ID."""
     return await db.get(MovieDB, movie_id)
+
+
+async def get_movie_with_orders(db: AsyncSession, movie_id: int) -> MovieDB | None:
+    """Gets movie AND preloads order_items to check for dependencies."""
+    stmt = (
+        select(MovieDB)
+        .options(selectinload(MovieDB.order_items))
+        .where(MovieDB.id == movie_id)
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
 
 async def get_movie_by_uuid(db: AsyncSession, movie_uuid) -> MovieDB | None:
     """Get a movie by its UUID."""
@@ -37,14 +50,28 @@ async def list_movies(db: AsyncSession, skip: int = 0, limit: int = 100) -> list
     result = await db.execute(select(MovieDB).offset(skip).limit(limit))
     return result.scalars().all()
 
+
 async def get_genre_by_id(db: AsyncSession, genre_id: int) -> GenreDB | None:
     """Get a genre by its ID."""
     return await db.get(GenreDB, genre_id)
+
 
 async def get_genres_by_ids(db: AsyncSession, ids: list[int]) -> list[GenreDB]:
     """Get multiple genres by their IDs."""
     result = await db.execute(select(GenreDB).where(GenreDB.id.in_(ids)))
     return result.scalars().all()
+
+
+async def get_genre_with_movies(db: AsyncSession, genre_id: int) -> GenreDB | None:
+    """Gets genre AND preloads movies to check for usage."""
+    stmt = (
+        select(GenreDB)
+        .options(selectinload(GenreDB.movies))
+        .where(GenreDB.id == genre_id)
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
 
 async def create_genre(db: AsyncSession, genre: GenreDB) -> GenreDB:
     """Create a new genre."""
@@ -53,10 +80,12 @@ async def create_genre(db: AsyncSession, genre: GenreDB) -> GenreDB:
     await db.refresh(genre)
     return genre
 
+
 async def list_genres(db: AsyncSession) -> list[GenreDB]:
     """Return all genres."""
     result = await db.execute(select(GenreDB))
     return result.scalars().all()
+
 
 async def delete_genre(db: AsyncSession, genre: GenreDB) -> None:
     """Delete a genre."""
@@ -67,6 +96,23 @@ async def get_certification_by_id(db: AsyncSession, cert_id: int) -> Certificati
     """Get a certification by its ID."""
     return await db.get(CertificationDB, cert_id)
 
+
+async def get_certification_with_movies(
+    db: AsyncSession, cert_id: int
+) -> CertificationDB | None:
+    """Gets certification AND preloads movies to check for usage."""
+    stmt = (
+        select(CertificationDB)
+        .options(selectinload(CertificationDB.movies))
+        .where(CertificationDB.id == cert_id)
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def create_certification(
+    db: AsyncSession, cert: CertificationDB
+) -> CertificationDB:
 async def create_certification(db: AsyncSession, cert: CertificationDB) -> CertificationDB:
     """Create a new certification."""
     db.add(cert)
@@ -74,10 +120,12 @@ async def create_certification(db: AsyncSession, cert: CertificationDB) -> Certi
     await db.refresh(cert)
     return cert
 
+
 async def list_certifications(db: AsyncSession) -> list[CertificationDB]:
     """Return all certifications."""
     result = await db.execute(select(CertificationDB))
     return result.scalars().all()
+
 
 async def delete_certification(db: AsyncSession, cert: CertificationDB) -> None:
     """Delete a certification."""
