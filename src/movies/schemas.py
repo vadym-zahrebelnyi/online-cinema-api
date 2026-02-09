@@ -12,10 +12,19 @@ class CertificationReadSchema(BaseModel):
     name: str
 
 
+class CertificationCreateSchema(BaseModel):
+    model_config: ConfigDict = ConfigDict(from_attributes=True)
+    name: str
+
+
 class GenreReadSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    name: str
+
+class GenreCreateSchema(BaseModel):
+    model_config: ConfigDict = ConfigDict(from_attributes=True)
     name: str
 
 
