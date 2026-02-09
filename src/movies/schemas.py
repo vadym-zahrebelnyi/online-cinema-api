@@ -23,6 +23,7 @@ class GenreReadSchema(BaseModel):
     id: int
     name: str
 
+
 class GenreCreateSchema(BaseModel):
     model_config: ConfigDict = ConfigDict(from_attributes=True)
     name: str

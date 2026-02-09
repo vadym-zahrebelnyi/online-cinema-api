@@ -24,6 +24,7 @@ class PaymentFilter(Filter):
         order_by (list[str]): List of fields to sort the results by. Defaults to descending
             order of creation date ('-created_at').
     """
+
     user_id: int | None = None
     status: PaymentStatusEnum | None = None
 
@@ -39,4 +40,5 @@ class PaymentFilter(Filter):
         Attributes:
             model (Type[PaymentDB]): The SQLAlchemy model that this filter applies to.
         """
+
         model = PaymentDB

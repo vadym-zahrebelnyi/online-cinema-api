@@ -22,6 +22,7 @@ def get_payment_gateway() -> BasePaymentGateway:
     """
     return StripeGateway()
 
+
 """
 Type alias for the payment gateway dependency.
 
