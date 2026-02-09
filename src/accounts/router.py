@@ -47,17 +47,31 @@ from src.cart.dependencies import get_cart_service
 from src.cart.services import CartService
 
 router = APIRouter()
+"""
+    API Router for account management.
+    Handles registration, authentication, profile updates, and administrative actions.
+"""
 
 
 @router.post(
     "/register/",
     response_model=RegisterResponseSchema,
     status_code=status.HTTP_201_CREATED,
+    responses={
+        409: {"description": "Conflict - User with this email already exists."},
+        500: {"description": "Internal Server Error - Default group not found."}
+    }
 )
 async def register_user(
     user_data: RegisterRequestSchema,
     service: Annotated[AuthService, Depends(get_auth_service)],
 ):
+    """
+        Registers a new user and triggers an activation email.
+
+        Returns 201 Created on success.
+        Raises 409 Conflict if the email is already taken.
+    """
     try:
         return await service.register_user(user_data)
     except UserAlreadyExistsException:
@@ -76,11 +90,17 @@ async def register_user(
     "/activate/",
     response_model=MessageResponseSchema,
     status_code=status.HTTP_200_OK,
+    responses={
+        400: {"description": "Bad Request - Invalid token or account already active."}
+    }
 )
 async def activate_account(
     activation_data: ActivateAccountRequestSchema,
     service: Annotated[AuthService, Depends(get_auth_service)],
 ):
+    """
+        Activates a user account using the token provided via email.
+    """
     try:
         await service.activate_user(activation_data)
         return MessageResponseSchema(message="User account activated successfully.")
@@ -96,6 +116,9 @@ async def activate_account(
     response_model=TokenPairSchema,
     status_code=status.HTTP_200_OK,
     summary="Login via JSON (Standard)",
+    responses={
+        401: {"description": "Unauthorized - Invalid email or password."}
+    }
 )
 async def login_user(
     login_data: LoginRequestSchema,
@@ -104,6 +127,12 @@ async def login_user(
     cart_service: Annotated[CartService, Depends(get_cart_service)],
     cart_id: str | None = Cookie(None),
 ):
+    """
+        Authenticates a user and returns JWT access and refresh tokens.
+
+        If an anonymous cart exists (via cookie), it will be merged with the
+        user's persistent cart upon successful login.
+    """
     try:
         token_pair = await service.login_user(login_data)
     except Exception:
@@ -153,11 +182,18 @@ async def login_for_access_token(
     "/refresh/",
     response_model=TokenPairSchema,
     status_code=status.HTTP_200_OK,
+    responses={
+        401: {"description": "Unauthorized - Invalid or expired refresh token."},
+        404: {"description": "Not Found - User associated with token not found."}
+    }
 )
 async def refresh_access_token(
     token_data: RefreshTokenRequestSchema,
     service: Annotated[AuthService, Depends(get_auth_service)],
 ):
+    """
+        Rotates the session by exchanging a valid refresh token for a new token pair.
+    """
     try:
         return await service.refresh_token(token_data)
     except InvalidTokenException:
@@ -174,11 +210,17 @@ async def refresh_access_token(
 @router.post(
     "/password-reset/request/",
     response_model=MessageResponseSchema,
+    responses={
+        200: {"description": "Success - Instructions sent if email exists."}
+    }
 )
 async def request_password_reset(
     data: ForgotPasswordRequestSchema,
     service: Annotated[AuthService, Depends(get_auth_service)],
 ):
+    """
+        Initiates the password recovery flow by sending a reset link to the provided email.
+    """
     await service.request_password_reset(data)
     return MessageResponseSchema(
         message="If you are registered, you will receive an email with instructions."
@@ -188,11 +230,17 @@ async def request_password_reset(
 @router.post(
     "/reset-password/complete/",
     response_model=MessageResponseSchema,
+    responses={
+        400: {"description": "Bad Request - Invalid or expired reset token."}
+    }
 )
 async def reset_password_complete(
     data: ResetPasswordRequestSchema,
     service: Annotated[AuthService, Depends(get_auth_service)],
 ):
+    """
+        Updates the user's password using a valid reset token.
+    """
     try:
         await service.complete_password_reset(data)
         return MessageResponseSchema(message="Password reset successfully.")
@@ -219,6 +267,9 @@ async def change_password(
     user: Annotated[UserDB, Depends(get_current_user)],
     service: Annotated[AuthService, Depends(get_auth_service)],
 ):
+    """
+        Allows an authenticated user to change their password while logged in.
+    """
     await service.change_password(user, password_data)
     return MessageResponseSchema(message="Password updated successfully.")
 
@@ -227,8 +278,14 @@ async def change_password(
     "/me/",
     response_model=UserResponseSchema,
     summary="Get current user info",
+    responses={
+        401: {"description": "Unauthorized - Token missing or invalid."}
+    }
 )
 async def get_me(user: Annotated[UserDB, Depends(get_current_user)]):
+    """
+        Returns complete information about the currently authenticated user.
+    """
     return {
         "id": user.id,
         "email": user.email,
@@ -243,6 +300,10 @@ async def get_me(user: Annotated[UserDB, Depends(get_current_user)]):
     "/me/profile/",
     response_model=UserProfileResponseSchema,
     summary="Update my profile",
+    responses={
+        401: {"description": "Unauthorized"},
+        400: {"description": "Bad Request - Invalid data or file format."}
+    }
 )
 async def update_my_profile(
     profile_data: Annotated[ProfileUpdateSchema, Depends(ProfileUpdateSchema.as_form)],
@@ -250,6 +311,9 @@ async def update_my_profile(
     service: Annotated[AuthService, Depends(get_auth_service)],
     avatar: Annotated[UploadFile | None, File()] = None,
 ):
+    """
+        Updates personal profile data. Supports multipart/form-data for avatar uploads to S3.
+    """
     update_data = profile_data.model_dump(exclude_none=True)
 
     return await service.update_profile(
@@ -261,11 +325,18 @@ async def update_my_profile(
     "/logout/",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Logout user",
+    responses={
+        204: {"description": "No Content - Successfully logged out."},
+        401: {"description": "Unauthorized"}
+    }
 )
 async def logout(
     token_data: RefreshTokenRequestSchema,
     service: Annotated[AuthService, Depends(get_auth_service)],
 ):
+    """
+        Inactivates the session by blacklisting/deleting the provided refresh token.
+    """
     await service.logout_user(token_data.refresh_token)
     return None
 
@@ -274,12 +345,20 @@ async def logout(
     "/admin/users/{user_id}/",
     response_model=UserResponseSchema,
     dependencies=[Depends(allow_admin)],
+    responses={
+        403: {"description": "Forbidden - Only admins can access this."},
+        404: {"description": "Not Found - User not found."}
+    }
 )
 async def admin_update_user(
     user_id: int,
     update_data: AdminUserUpdateSchema,
     service: Annotated[AuthService, Depends(get_auth_service)],
 ):
+    """
+        Administrative endpoint to manage user status and roles.
+        Requires ADMIN privileges.
+    """
     user = await service.admin_update_user(user_id, update_data)
 
     return {

@@ -40,6 +40,13 @@ from src.storages.s3 import S3StorageClient
 
 
 class AuthService:
+    """
+        Service for handling authentication, user management, and profile operations.
+
+        This service coordinates interactions between the database, JWT manager,
+        S3 storage, and background tasks (Celery) to provide a complete
+        identity management system.
+    """
     def __init__(
         self,
         db: AsyncSession,
@@ -53,6 +60,19 @@ class AuthService:
         self.storage_client = storage_client
 
     async def register_user(self, user_data: RegisterRequestSchema) -> UserDB:
+        """
+            Registers a new user in the system.
+
+            Steps:
+            1. Assigns the default 'USER' group.
+            2. Creates a UserDB record with a hashed password.
+            3. Initializes an empty UserProfileDB.
+            4. Generates an activation token.
+            5. Triggers a background task to send an activation email.
+
+            :raises UserNotFoundException: If the default user group is missing.
+            :raises UserAlreadyExistsException: If the email is already registered.
+        """
         stmt = select(UserGroupDB).where(UserGroupDB.name == UserGroupEnum.USER)
         result = await self.db.execute(stmt)
         user_group = result.scalars().first()
@@ -91,6 +111,15 @@ class AuthService:
     async def activate_user(
         self, activation_data: ActivateAccountRequestSchema
     ) -> None:
+        """
+            Activates a user account using a secure token.
+
+            Validates the token's existence and expiration date. Upon success,
+            sets 'is_active' to True and removes the token.
+
+            :raises InvalidTokenException: If the token is missing or expired.
+            :raises AccountNotActiveException: If the user is already active.
+        """
         stmt = (
             select(ActivationTokenDB)
             .options(joinedload(ActivationTokenDB.user))
@@ -122,6 +151,13 @@ class AuthService:
         send_activation_complete_email_task.delay(user.email)
 
     async def login_user(self, login_data: LoginRequestSchema) -> TokenPairSchema:
+        """
+            Authenticates a user and generates a JWT token pair.
+            Verifies credentials, checks account activity status, and stores a new RefreshToken in the database.
+
+            :raises InvalidCredentialsException: If email/password mismatch.
+            :raises AccountNotActiveException: If the account hasn't been activated.
+        """
         stmt = select(UserDB).where(UserDB.email == login_data.email)
         result = await self.db.execute(stmt)
         user = result.scalars().first()
@@ -150,6 +186,13 @@ class AuthService:
     async def refresh_token(
         self, token_data: RefreshTokenRequestSchema
     ) -> TokenPairSchema:
+        """
+            Rotates JWT tokens using a valid Refresh Token.
+            Verifies the provided refresh token, deletes the old one from DB,
+            and issues a new Access/Refresh pair (Token Rotation).
+
+            :raises InvalidTokenException: If the token is reused, expired, or invalid.
+        """
         try:
             decoded = self.jwt_manager.decode_refresh_token(token_data.refresh_token)
             user_id = decoded.get("user_id")
@@ -198,6 +241,12 @@ class AuthService:
         )
 
     async def request_password_reset(self, data: ForgotPasswordRequestSchema) -> None:
+        """
+            Initiates the password recovery process.
+
+            Generates a PasswordResetToken and triggers a background task
+            to send reset instructions to the user's email.
+        """
         stmt = select(UserDB).where(UserDB.email == data.email)
         result = await self.db.execute(stmt)
         user = result.scalars().first()
@@ -218,6 +267,11 @@ class AuthService:
         send_password_reset_email_task.delay(user.email, reset_token.token)
 
     async def complete_password_reset(self, data: ResetPasswordRequestSchema) -> None:
+        """
+            Sets a new password using a valid reset token.
+
+            Validates the token and updates the User's hashed password.
+        """
         stmt = (
             select(PasswordResetTokenDB)
             .options(joinedload(PasswordResetTokenDB.user))
@@ -247,6 +301,9 @@ class AuthService:
         send_password_reset_complete_email_task.delay(user.email)
 
     async def logout_user(self, refresh_token: str) -> None:
+        """
+            Inactivates a session by deleting the refresh token from the database.
+        """
         stmt = delete(RefreshTokenDB).where(RefreshTokenDB.token == refresh_token)
         await self.db.execute(stmt)
         await self.db.commit()
@@ -254,6 +311,12 @@ class AuthService:
     async def update_profile(
         self, user: UserDB, profile_data: dict, avatar: UploadFile | None = None
     ) -> UserProfileDB:
+        """
+            Updates user profile information and optionally handles avatar uploads to S3.
+
+            If an avatar is provided, it is uploaded to a unique path in the S3 bucket,
+            and the resulting URL is saved in the profile.
+        """
         profile = user.profile
 
         if not profile:
@@ -282,6 +345,10 @@ class AuthService:
         return profile
 
     async def resend_activation_email(self, email: str) -> None:
+        """
+            Invalidates old activation tokens and sends a fresh one.
+            Used when the user hasn't received the email or the previous token expired.
+        """
         stmt = select(UserDB).where(UserDB.email == email)
         result = await self.db.execute(stmt)
         user = result.scalars().first()
@@ -304,6 +371,11 @@ class AuthService:
     async def change_password(
         self, user: UserDB, data: ChangePasswordRequestSchema
     ) -> None:
+        """
+            Allows an authenticated user to update their password.
+
+            Verifies the old password before applying the new one.
+        """
         if not user.verify_password(data.old_password):
             raise InvalidCredentialsException()
 
@@ -314,6 +386,10 @@ class AuthService:
     async def admin_update_user(
         self, user_id: int, data: AdminUserUpdateSchema
     ) -> UserDB:
+        """
+            Administrative method to modify user status or group.
+            Allows manual activation/deactivation and role assignment.
+        """
         stmt = (
             select(UserDB)
             .options(joinedload(UserDB.profile), joinedload(UserDB.group))
