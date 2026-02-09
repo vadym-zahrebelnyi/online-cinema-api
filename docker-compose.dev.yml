@@ -143,7 +143,7 @@ services:
   stripe-cli:
     image: stripe/stripe-cli:latest
     container_name: stripe_cli
-    command: listen --forward-to web:8000/api/v1/payments/webhooks/stripe --api-key ${STRIPE_SECRET_KEY}
+    command: listen --forward-to web:80/api/v1/payments/webhooks/stripe --api-key ${STRIPE_SECRET_KEY}
     env_file:
       - .env
     depends_on:
