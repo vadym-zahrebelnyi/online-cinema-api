@@ -1,17 +1,20 @@
-import pytest
-from unittest.mock import AsyncMock, MagicMock
 from decimal import Decimal
+from unittest.mock import AsyncMock, MagicMock
 
-from src.orders.services import calculate_total_amount, create_order_items_from_cart
+import pytest
+
+from src.cart.models import CartItemDB
+from src.movies.models import MovieDB
 from src.orders.exceptions import MovieNotAvailableError
 from src.orders.models import OrderItemDB
-from src.movies.models import MovieDB
-from src.cart.models import CartItemDB
+from src.orders.services import calculate_total_amount, create_order_items_from_cart
+
 
 @pytest.fixture
 def db():
     """Fixture providing a mocked async database session."""
     return AsyncMock()
+
 
 @pytest.mark.asyncio
 async def test_calculate_total_amount_success(db):
@@ -31,6 +34,7 @@ async def test_calculate_total_amount_success(db):
 
     assert total == Decimal("15.75")
     assert movies == [movie1, movie2]
+
 
 @pytest.mark.asyncio
 async def test_calculate_total_amount_movie_missing(db):
@@ -74,4 +78,3 @@ async def test_create_order_items_from_cart():
     assert added_items[0].movie_id == 1
     assert added_items[0].price_at_order == Decimal("10.50")
     assert added_items[1].movie_id == 2
-

@@ -18,12 +18,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi_filter import FilterDepends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.dependencies import PaginationParams, get_pagination
 from src.accounts.dependencies import allow_admin, get_current_user
 from src.accounts.models import UserDB
 from src.cart.dependencies import get_cart_service
 from src.cart.services import CartService
 from src.core.database import get_db
+from src.core.dependencies import PaginationParams, get_pagination
 from src.orders.crud import (
     cancel_order,
     create_order,

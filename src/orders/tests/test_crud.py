@@ -1,19 +1,20 @@
-import pytest
-from unittest.mock import AsyncMock, MagicMock
 from decimal import Decimal
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 from sqlalchemy import select
 
-from src.orders.crud import (
-    create_order,
-    get_orders_by_user,
-    cancel_order,
-    get_order_with_items,
-    get_all_orders_filtered,
-)
-from src.orders.models import OrderDB, OrderStatusEnum
 from src.cart.models import CartDB, CartItemDB
-from src.orders.exceptions import CartIsEmptyError, OrderNotFoundError
 from src.core.pagination import PaginationParams
+from src.orders.crud import (
+    cancel_order,
+    create_order,
+    get_all_orders_filtered,
+    get_order_with_items,
+    get_orders_by_user,
+)
+from src.orders.exceptions import CartIsEmptyError, OrderNotFoundError
+from src.orders.models import OrderDB, OrderStatusEnum
 
 
 @pytest.mark.asyncio
@@ -27,6 +28,7 @@ async def test_get_orders_by_user():
 
     class MockScalarResult:
         """Mock object for db.scalars() result."""
+
         def all(self):
             return [order1, order2]
 
@@ -92,6 +94,7 @@ async def test_get_all_orders_filtered():
 
     class MockScalarResult:
         """Mock object for db.scalars() result."""
+
         def all(self):
             return [order1, order2]
 
@@ -125,6 +128,7 @@ async def test_create_order_success(monkeypatch):
 
     class MockMovie:
         """Mock movie object with id and price."""
+
         def __init__(self, id, price):
             self.id = id
             self.price = price
@@ -140,11 +144,13 @@ async def test_create_order_success(monkeypatch):
     cart = CartDB()
     cart.items = [cart_item1, cart_item2]
 
-    db.scalar = AsyncMock(side_effect=[
-        cart,
-        False,
-        OrderDB(id=1, user_id=1, total_amount=Decimal("15.75"))
-    ])
+    db.scalar = AsyncMock(
+        side_effect=[
+            cart,
+            False,
+            OrderDB(id=1, user_id=1, total_amount=Decimal("15.75")),
+        ]
+    )
 
     class MockScalars:
         def first(self):

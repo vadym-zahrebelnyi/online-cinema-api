@@ -22,9 +22,9 @@ from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.core.dependencies import PaginationParams
 from src.cart.models import CartDB, CartItemDB
 from src.cart.services import CartService
+from src.core.dependencies import PaginationParams
 from src.orders.exceptions import (
     CartIsEmptyError,
     OrderNotFoundError,
@@ -177,7 +177,9 @@ async def get_order_with_items(db: AsyncSession, order_id: int) -> OrderDB | Non
     return await db.scalar(stmt)
 
 
-async def get_all_orders_filtered(db: AsyncSession, filters: OrderFilter, pagination: PaginationParams) -> List[OrderDB] :
+async def get_all_orders_filtered(
+    db: AsyncSession, filters: OrderFilter, pagination: PaginationParams
+) -> List[OrderDB]:
     """
     Retrieve all orders from the database with applied filters and sorting.
 
