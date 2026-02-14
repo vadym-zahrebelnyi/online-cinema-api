@@ -1,4 +1,3 @@
-import logging
 from typing import Annotated
 
 from fastapi import (
@@ -20,9 +19,10 @@ from src.accounts.dependencies import (
 )
 from src.accounts.exceptions import (
     AccountNotActiveException,
+    InvalidCredentialsException,
     InvalidTokenException,
     UserAlreadyExistsException,
-    UserNotFoundException, InvalidCredentialsException,
+    UserNotFoundException,
 )
 from src.accounts.models import UserDB
 from src.accounts.schemas import (

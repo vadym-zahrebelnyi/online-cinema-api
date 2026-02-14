@@ -9,19 +9,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from src.cart.services import CartService
 from src.accounts.exceptions import (
     AccountNotActiveException,
     InvalidCredentialsException,
     InvalidTokenException,
     UserAlreadyExistsException,
     UserNotFoundException,
-)
-from src.accounts.tasks import (
-    send_activation_email_task,
-    send_activation_complete_email_task,
-    send_password_reset_email_task,
-    send_password_reset_complete_email_task,
 )
 from src.accounts.models import (
     ActivationTokenDB,
@@ -43,6 +36,13 @@ from src.accounts.schemas import (
     ResetPasswordRequestSchema,
     TokenPairSchema,
 )
+from src.accounts.tasks import (
+    send_activation_complete_email_task,
+    send_activation_email_task,
+    send_password_reset_complete_email_task,
+    send_password_reset_email_task,
+)
+from src.cart.services import CartService
 from src.core.settings import Settings
 from src.security.interfaces import JWTAuthManagerInterface
 from src.storages.s3 import S3StorageClient
@@ -114,7 +114,6 @@ class AuthService:
 
             await self.db.refresh(new_user)
 
-
             send_activation_email_task.delay(new_user.email, activation_token.token)
 
             return new_user
@@ -171,14 +170,13 @@ class AuthService:
             await self.db.rollback()
             raise
 
-
         send_activation_complete_email_task.delay(user.email)
 
     async def login_user(
-            self,
-            login_data: LoginRequestSchema,
-            cart_id: str | None = None,
-            cart_service: CartService | None = None,
+        self,
+        login_data: LoginRequestSchema,
+        cart_id: str | None = None,
+        cart_service: CartService | None = None,
     ) -> TokenPairSchema:
 
         stmt = select(UserDB).where(UserDB.email == login_data.email)
@@ -221,7 +219,7 @@ class AuthService:
         )
 
     async def refresh_token(
-            self, token_data: RefreshTokenRequestSchema
+        self, token_data: RefreshTokenRequestSchema
     ) -> TokenPairSchema:
         """
         Rotates JWT tokens using a valid Refresh Token.
@@ -247,7 +245,7 @@ class AuthService:
             raise InvalidTokenException()
 
         if stored_token.expires_at.replace(tzinfo=timezone.utc) < datetime.now(
-                timezone.utc
+            timezone.utc
         ):
             await self.db.delete(stored_token)
 

@@ -135,7 +135,6 @@ class UserDB(Base):
         """
         return self.group.name == group_name
 
-
     @property
     def password(self) -> None:
         raise AttributeError(
@@ -181,7 +180,6 @@ class UserProfileDB(Base):
     date_of_birth: Mapped[date | None] = mapped_column(Date)
     info: Mapped[str | None] = mapped_column(Text)
     user: Mapped["UserDB"] = relationship(back_populates="profile")
-
 
     def __repr__(self):
         return (
