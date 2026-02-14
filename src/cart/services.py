@@ -5,6 +5,7 @@ from redis.asyncio import Redis
 
 from src.cart.crud import CartCRUD
 from src.cart.exceptions import (
+    CartLimitExceededError,
     MovieAlreadyInCartError,
     MovieAlreadyOwnedError,
     MovieNotFoundError,
@@ -15,8 +16,7 @@ from src.cart.schemas import CartItemReadSchema, CartReadSchema, MovieCartReadSc
 class CartService:
     """
     Business logic for managing shopping carts.
-
-    This service implements a 'Hybrid Cart' pattern:
+        This service implements a 'Hybrid Cart' pattern:
     1. **Anonymous Users**: Cart data is stored in Redis (fast, ephemeral, expires in 7 days).
        The cart is identified by a 'cart_id' cookie (anon_id).
     2. **Authenticated Users**: Cart data is stored in PostgreSQL (persistent).
@@ -24,6 +24,8 @@ class CartService:
     It also handles the merging strategy when an anonymous user logs in, moving
     their Redis items into the permanent database cart.
     """
+
+    MAX_CART_ITEMS = 50
 
     def __init__(self, repo: CartCRUD, redis: Redis):
         """
@@ -121,6 +123,12 @@ class CartService:
                     raise MovieAlreadyOwnedError()
 
                 cart = await self.repo.get_cart_by_user(user_id)
+                if cart:
+                    if len(cart.items) >= self.MAX_CART_ITEMS:
+                        if not await self.repo.item_exists(cart.id, movie_id):
+                            raise CartLimitExceededError(self.MAX_CART_ITEMS)
+                
+
                 if not cart:
                     cart = await self.repo.create_cart(user_id)
 
