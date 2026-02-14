@@ -115,18 +115,19 @@ class CartService:
             raise MovieNotFoundError()
 
         if user_id:
-            already_owned = await self.repo.is_movie_available_to_buy(user_id, movie_id)
-            if already_owned:
-                raise MovieAlreadyOwnedError()
+            async with self.repo.db.begin():
+                already_owned = await self.repo.is_movie_available_to_buy(user_id, movie_id)
+                if already_owned:
+                    raise MovieAlreadyOwnedError()
 
-            cart = await self.repo.get_cart_by_user(user_id)
-            if not cart:
-                cart = await self.repo.create_cart(user_id)
+                cart = await self.repo.get_cart_by_user(user_id)
+                if not cart:
+                    cart = await self.repo.create_cart(user_id)
 
-            if await self.repo.item_exists(cart.id, movie_id):
-                raise MovieAlreadyInCartError()
+                if await self.repo.item_exists(cart.id, movie_id):
+                    raise MovieAlreadyInCartError()
 
-            await self.repo.add_item(cart.id, movie_id)
+                await self.repo.add_item(cart.id, movie_id)
 
         elif anon_id:
             key = f"cart:{anon_id}"
@@ -152,9 +153,10 @@ class CartService:
             anon_id (str | None): Anonymous cookie ID.
         """
         if user_id:
-            cart = await self.repo.get_cart_by_user(user_id)
-            if cart:
-                await self.repo.remove_item(cart.id, movie_id)
+            async with self.repo.db.begin():
+                cart = await self.repo.get_cart_by_user(user_id)
+                if cart:
+                    await self.repo.remove_item(cart.id, movie_id)
 
         elif anon_id:
             key = f"cart:{anon_id}"
@@ -169,9 +171,10 @@ class CartService:
             anon_id (str | None): Anonymous cookie ID.
         """
         if user_id:
-            cart = await self.repo.get_cart_by_user(user_id)
-            if cart:
-                await self.repo.clear_cart(cart.id)
+            async with self.repo.db.begin():
+                cart = await self.repo.get_cart_by_user(user_id)
+                if cart:
+                    await self.repo.clear_cart(cart.id)
 
         elif anon_id:
             key = f"cart:{anon_id}"
@@ -203,27 +206,28 @@ class CartService:
 
         ids_to_check = [int(mid) for mid in anon_movie_ids_raw]
 
-        valid_movies = await self.repo.get_movies_by_ids(ids_to_check)
+        async with self.repo.db.begin():
+            valid_movies = await self.repo.get_movies_by_ids(ids_to_check)
 
-        if not valid_movies:
+            if not valid_movies:
+                await self.redis.delete(redis_key)
+                return
+
+            cart = await self.repo.get_cart_by_user(user_id)
+            if not cart:
+                cart = await self.repo.create_cart(user_id)
+
+            for movie in valid_movies:
+                movie_id = movie.id
+
+                is_owned = await self.repo.is_movie_available_to_buy(user_id, movie_id)
+                if is_owned:
+                    continue
+
+                exists_in_cart = await self.repo.item_exists(cart.id, movie_id)
+                if exists_in_cart:
+                    continue
+
+                await self.repo.add_item(cart.id, movie_id)
+
             await self.redis.delete(redis_key)
-            return
-
-        cart = await self.repo.get_cart_by_user(user_id)
-        if not cart:
-            cart = await self.repo.create_cart(user_id)
-
-        for movie in valid_movies:
-            movie_id = movie.id
-
-            is_owned = await self.repo.is_movie_available_to_buy(user_id, movie_id)
-            if is_owned:
-                continue
-
-            exists_in_cart = await self.repo.item_exists(cart.id, movie_id)
-            if exists_in_cart:
-                continue
-
-            await self.repo.add_item(cart.id, movie_id)
-
-        await self.redis.delete(redis_key)

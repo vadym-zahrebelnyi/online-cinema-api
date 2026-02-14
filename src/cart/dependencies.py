@@ -1,5 +1,5 @@
 from typing import Annotated
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import Cookie, Depends, Response
 from redis.asyncio import Redis
@@ -19,6 +19,7 @@ async def get_anon_cart_id(
 
     If the user does not have a 'cart_id' cookie, a new UUID is generated
     and set in the response cookies with a 7-day expiration.
+    If an existing 'cart_id' cookie is invalid, a new one is generated.
 
     Args:
         response (Response): The FastAPI response object to set the cookie.
@@ -27,11 +28,18 @@ async def get_anon_cart_id(
     Returns:
         str: The UUID string representing the anonymous cart.
     """
-    if cart_id is None:
+    valid_uuid = None
+    if cart_id:
+        try:
+            valid_uuid = UUID(cart_id)
+        except ValueError:
+            pass
+
+    if not valid_uuid:
         new_id = str(uuid4())
         response.set_cookie(key="cart_id", value=new_id, httponly=True, max_age=604800)
         return new_id
-    return cart_id
+    return str(valid_uuid)
 
 
 async def get_cart_service(
