@@ -195,7 +195,6 @@ class UserProfileDB(Base):
     info: Mapped[str | None] = mapped_column(Text)
     user: Mapped["UserDB"] = relationship(back_populates="profile")
 
-    __table_args__ = (UniqueConstraint("user_id"),)
 
     def __repr__(self):
         return (
