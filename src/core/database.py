@@ -1,5 +1,3 @@
-from typing import AsyncGenerator
-
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -30,18 +28,3 @@ SessionLocal = async_sessionmaker(
     autoflush=False,
     expire_on_commit=False,
 )
-
-
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """
-    Dependency generator for database sessions.
-
-    Yields an asynchronous database session for the duration of a request.
-    Ensures that the session is properly closed after the request is processed,
-    even if an error occurs.
-
-    Yields:
-        AsyncSession: An active SQLAlchemy asynchronous session.
-    """
-    async with SessionLocal() as session:
-        yield session

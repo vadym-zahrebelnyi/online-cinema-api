@@ -5,7 +5,7 @@ from fastapi_filter import FilterDepends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.accounts.dependencies import allow_admin, allow_moderator
-from src.core.database import get_db
+from src.core import get_db
 from src.movies import schemas, service
 from src.movies.exceptions import (
     CertificationNotFoundException,

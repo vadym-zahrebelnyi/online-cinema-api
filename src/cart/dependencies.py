@@ -7,8 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.cart.crud import CartCRUD
 from src.cart.services import CartService
-from src.core import get_db
-from src.core.dependencies import get_redis
+from src.core import get_db, get_redis
 
 
 async def get_anon_cart_id(
