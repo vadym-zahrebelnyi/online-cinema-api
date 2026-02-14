@@ -178,6 +178,15 @@ class AuthService:
         cart_id: str | None = None,
         cart_service: CartService | None = None,
     ) -> TokenPairSchema:
+        """
+        Authenticates a user by validating credentials.
+
+        Creates and stores a new refresh token.
+        Optionally merges an anonymous cart into the user's cart.
+
+        :raises InvalidCredentialsException: If email or password is invalid.
+        :raises AccountNotActiveException: If the account is not activated.
+        """
 
         stmt = select(UserDB).where(UserDB.email == login_data.email)
         result = await self.db.execute(stmt)
@@ -222,11 +231,12 @@ class AuthService:
         self, token_data: RefreshTokenRequestSchema
     ) -> TokenPairSchema:
         """
-        Rotates JWT tokens using a valid Refresh Token.
-        Verifies the provided refresh token, deletes the old one from DB,
-        and issues a new Access/Refresh pair (Token Rotation).
+            Refreshes JWT access and refresh tokens using token rotation.
 
-        :raises InvalidTokenException: If the token is reused, expired, or invalid.
+            Deletes the old refresh token and creates a new token pair.
+
+            :raises InvalidTokenException: If token is invalid or expired.
+            :raises UserNotFoundException: If associated user does not exist.
         """
 
         try:
@@ -353,7 +363,7 @@ class AuthService:
 
     async def logout_user(self, refresh_token: str) -> None:
         """
-        Inactivates a session by deleting the refresh token from the database.
+            Logs out a user by deleting the provided refresh token from the database.
         """
         stmt = delete(RefreshTokenDB).where(RefreshTokenDB.token == refresh_token)
         await self.db.execute(stmt)
@@ -407,8 +417,8 @@ class AuthService:
 
     async def resend_activation_email(self, email: str) -> None:
         """
-        Invalidates old activation tokens and sends a fresh one.
-        Used when the user hasn't received the email or the previous token expired.
+            Generates a new activation token and sends activation email
+            if the user exists and is not active.
         """
         stmt = select(UserDB).where(UserDB.email == email)
         result = await self.db.execute(stmt)
@@ -436,9 +446,9 @@ class AuthService:
         self, user: UserDB, data: ChangePasswordRequestSchema
     ) -> None:
         """
-        Allows an authenticated user to update their password.
+            Allows an authenticated user to change their password.
 
-        Verifies the old password before applying the new one.
+            Verifies the old password before updating.
         """
         if not user.verify_password(data.old_password):
             raise InvalidCredentialsException()
@@ -456,8 +466,7 @@ class AuthService:
         self, user_id: int, data: AdminUserUpdateSchema
     ) -> UserDB:
         """
-        Administrative method to modify user status or group.
-        Allows manual activation/deactivation and role assignment.
+            Allows admin to update user activation status or group.
         """
         stmt = (
             select(UserDB)
