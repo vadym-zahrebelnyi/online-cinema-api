@@ -135,19 +135,6 @@ class UserDB(Base):
         """
         return self.group.name == group_name
 
-    @classmethod
-    def create(
-        cls, email: str, raw_password: str, group_id: int | Mapped[int]
-    ) -> "UserDB":
-        """
-        Factory method to create a new UserDB instance.
-
-        This method simplifies the creation of a new user by handling
-        password hashing and setting required attributes.
-        """
-        user = cls(email=email, group_id=group_id)
-        user.password = raw_password
-        return user
 
     @property
     def password(self) -> None:

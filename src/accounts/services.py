@@ -82,11 +82,12 @@ class AuthService:
             raise UserNotFoundException()
 
         try:
-            new_user = UserDB.create(
+            new_user = UserDB(
                 email=user_data.email,
-                raw_password=user_data.password,
                 group_id=user_group.id,
             )
+            new_user.password = user_data.password
+
             self.db.add(new_user)
             await self.db.flush()
 
