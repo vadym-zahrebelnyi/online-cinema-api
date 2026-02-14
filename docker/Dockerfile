@@ -27,6 +27,8 @@ RUN if [ "$APP_ENV" = "dev" ]; then \
 
 COPY src/ ./src
 COPY alembic/ ./alembic
+COPY configs/alembic/alembic.ini ./alembic.ini
+
 
 FROM python:3.12.8-slim
 

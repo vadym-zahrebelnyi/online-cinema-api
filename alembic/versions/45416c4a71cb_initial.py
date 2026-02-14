@@ -1,8 +1,8 @@
 """Initial
 
-Revision ID: 5b4f14b545e1
+Revision ID: 45416c4a71cb
 Revises: 
-Create Date: 2026-02-07 09:45:31.632065
+Create Date: 2026-02-14 20:05:55.020429
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '5b4f14b545e1'
+revision: str = '45416c4a71cb'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -161,7 +161,6 @@ def upgrade() -> None:
     sa.Column('info', sa.Text(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('user_id'),
     sa.UniqueConstraint('user_id')
     )
     op.create_table('cart_items',
@@ -189,7 +188,7 @@ def upgrade() -> None:
     op.create_table('payments',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('amount', sa.DECIMAL(precision=10, scale=2), nullable=False),
-    sa.Column('status', sa.Enum('PENDING', 'SUCCESSFUL', 'CANCELED', 'REFUNDED', name='paymentstatusenum'), nullable=False),
+    sa.Column('status', sa.Enum('PENDING', 'SUCCESSFUL', 'CANCELED', 'REFUNDED', 'REFUND_REQUESTED', name='paymentstatusenum'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('order_id', sa.Integer(), nullable=False),
