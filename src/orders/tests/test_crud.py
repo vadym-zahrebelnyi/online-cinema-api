@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import select
 
 from src.cart.models import CartDB, CartItemDB
-from src.core.pagination import PaginationParams
+from src.core.dependencies import PaginationParams
 from src.orders.crud import (
     cancel_order,
     create_order,
