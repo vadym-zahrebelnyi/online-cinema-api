@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi_filter import FilterDepends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.dependencies import PaginationParams, get_pagination
 from src.accounts.dependencies import allow_admin, get_current_user
 from src.accounts.models import UserDB
 from src.cart.dependencies import get_cart_service
@@ -59,6 +60,7 @@ async def get_my_orders_endpoint(
 @router.get("/admin/all", response_model=list[OrderReadSchema])
 async def get_all_orders_admin(
     filters: Annotated[OrderFilter, FilterDepends(OrderFilter)],
+    pagination: Annotated[PaginationParams, Depends(get_pagination)],
     db: Annotated[AsyncSession, Depends(get_db)],
     _: Annotated[UserDB, Depends(allow_admin)],
 ):
@@ -73,7 +75,7 @@ async def get_all_orders_admin(
     Returns:
         List[OrderReadSchema]: List of orders matching the filters.
     """
-    return await get_all_orders_filtered(db, filters)
+    return await get_all_orders_filtered(db, filters, pagination)
 
 
 @router.post("/", response_model=OrderReadSchema)
