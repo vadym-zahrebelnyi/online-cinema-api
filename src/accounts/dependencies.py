@@ -6,6 +6,7 @@ from fastapi.security import (
     HTTPBearer,
     OAuth2PasswordBearer,
 )
+from jose.exceptions import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -102,10 +103,16 @@ async def _get_user_from_request(
 
     try:
         payload = jwt_manager.decode_access_token(token)
-        user_id = payload.get("user_id")
-        if user_id is None:
-            return None
-    except Exception:
+    except JWTError:
+        return None
+
+    user_id = payload.get("user_id")
+    if user_id is None:
+        return None
+
+    try:
+        user_id = int(user_id)
+    except (TypeError, ValueError):
         return None
 
     stmt = (

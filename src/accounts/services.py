@@ -1,7 +1,9 @@
+import logging
 import uuid
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, UploadFile
+from jose.exceptions import JWTError
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,6 +36,13 @@ from src.accounts.schemas import (
     ResetPasswordRequestSchema,
     TokenPairSchema,
 )
+from src.accounts.tasks import (
+    send_activation_complete_email_task,
+    send_activation_email_task,
+    send_password_reset_complete_email_task,
+    send_password_reset_email_task,
+)
+from src.cart.services import CartService
 from src.core.settings import Settings
 from src.security.interfaces import JWTAuthManagerInterface
 from src.storages.s3 import S3StorageClient
@@ -82,11 +91,12 @@ class AuthService:
             raise UserNotFoundException()
 
         try:
-            new_user = UserDB.create(
+            new_user = UserDB(
                 email=user_data.email,
-                raw_password=user_data.password,
                 group_id=user_group.id,
             )
+            new_user.password = user_data.password
+
             self.db.add(new_user)
             await self.db.flush()
 
@@ -96,10 +106,13 @@ class AuthService:
             activation_token = ActivationTokenDB(user_id=new_user.id)
             self.db.add(activation_token)
 
-            await self.db.commit()
-            await self.db.refresh(new_user)
+            try:
+                await self.db.commit()
+            except Exception:
+                await self.db.rollback()
+                raise
 
-            from src.accounts.tasks import send_activation_email_task
+            await self.db.refresh(new_user)
 
             send_activation_email_task.delay(new_user.email, activation_token.token)
 
@@ -136,29 +149,36 @@ class AuthService:
             timezone.utc
         ):
             await self.db.delete(token_record)
-            await self.db.commit()
+            try:
+                await self.db.commit()
+            except Exception:
+                await self.db.rollback()
+                raise
             raise InvalidTokenException()
 
         user = token_record.user
-        if user.is_active:
-            raise AccountNotActiveException()
+        try:
+            if user.is_active:
+                raise AccountNotActiveException()
 
-        user.is_active = True
-        await self.db.delete(token_record)
-        await self.db.commit()
+            user.is_active = True
+            await self.db.delete(token_record)
 
-        from src.accounts.tasks import send_activation_complete_email_task
+            await self.db.commit()
+
+        except Exception:
+            await self.db.rollback()
+            raise
 
         send_activation_complete_email_task.delay(user.email)
 
-    async def login_user(self, login_data: LoginRequestSchema) -> TokenPairSchema:
-        """
-        Authenticates a user and generates a JWT token pair.
-        Verifies credentials, checks account activity status, and stores a new RefreshToken in the database.
+    async def login_user(
+        self,
+        login_data: LoginRequestSchema,
+        cart_id: str | None = None,
+        cart_service: CartService | None = None,
+    ) -> TokenPairSchema:
 
-        :raises InvalidCredentialsException: If email/password mismatch.
-        :raises AccountNotActiveException: If the account hasn't been activated.
-        """
         stmt = select(UserDB).where(UserDB.email == login_data.email)
         result = await self.db.execute(stmt)
         user = result.scalars().first()
@@ -178,10 +198,24 @@ class AuthService:
             token=jwt_refresh_token,
         )
         self.db.add(refresh_token_record)
-        await self.db.commit()
+        try:
+            await self.db.commit()
+        except Exception:
+            await self.db.rollback()
+            raise
+
+        if cart_id and cart_service:
+            try:
+                await cart_service.merge_anon_cart(
+                    anon_id=cart_id,
+                    user_id=user.id,
+                )
+            except Exception as e:
+                logging.error(f"Failed to merge cart: {e}")
 
         return TokenPairSchema(
-            access_token=jwt_access_token, refresh_token=jwt_refresh_token
+            access_token=jwt_access_token,
+            refresh_token=jwt_refresh_token,
         )
 
     async def refresh_token(
@@ -194,10 +228,11 @@ class AuthService:
 
         :raises InvalidTokenException: If the token is reused, expired, or invalid.
         """
+
         try:
             decoded = self.jwt_manager.decode_refresh_token(token_data.refresh_token)
             user_id = decoded.get("user_id")
-        except Exception:
+        except JWTError:
             raise InvalidTokenException()
 
         stmt = select(RefreshTokenDB).where(
@@ -209,12 +244,17 @@ class AuthService:
         if not stored_token:
             raise InvalidTokenException()
 
-        await self.db.delete(stored_token)
-
         if stored_token.expires_at.replace(tzinfo=timezone.utc) < datetime.now(
             timezone.utc
         ):
-            await self.db.commit()
+            await self.db.delete(stored_token)
+
+            try:
+                await self.db.commit()
+            except Exception:
+                await self.db.rollback()
+                raise
+
             raise InvalidTokenException()
 
         stmt = select(UserDB).where(UserDB.id == user_id)
@@ -222,7 +262,6 @@ class AuthService:
         user = result.scalars().first()
 
         if not user:
-            await self.db.commit()
             raise UserNotFoundException()
 
         new_access_token = self.jwt_manager.create_access_token({"user_id": user_id})
@@ -235,10 +274,15 @@ class AuthService:
         )
         self.db.add(new_refresh_record)
 
-        await self.db.commit()
+        try:
+            await self.db.commit()
+        except Exception:
+            await self.db.rollback()
+            raise
 
         return TokenPairSchema(
-            access_token=new_access_token, refresh_token=new_refresh_token
+            access_token=new_access_token,
+            refresh_token=new_refresh_token,
         )
 
     async def request_password_reset(self, data: ForgotPasswordRequestSchema) -> None:
@@ -261,9 +305,12 @@ class AuthService:
 
         reset_token = PasswordResetTokenDB(user_id=user.id)
         self.db.add(reset_token)
-        await self.db.commit()
 
-        from src.accounts.tasks import send_password_reset_email_task
+        try:
+            await self.db.commit()
+        except Exception:
+            await self.db.rollback()
+            raise
 
         send_password_reset_email_task.delay(user.email, reset_token.token)
 
@@ -295,9 +342,12 @@ class AuthService:
         user.password = data.new_password
 
         await self.db.delete(token_record)
-        await self.db.commit()
 
-        from src.accounts.tasks import send_password_reset_complete_email_task
+        try:
+            await self.db.commit()
+        except Exception:
+            await self.db.rollback()
+            raise
 
         send_password_reset_complete_email_task.delay(user.email)
 
@@ -307,7 +357,12 @@ class AuthService:
         """
         stmt = delete(RefreshTokenDB).where(RefreshTokenDB.token == refresh_token)
         await self.db.execute(stmt)
-        await self.db.commit()
+
+        try:
+            await self.db.commit()
+        except Exception:
+            await self.db.rollback()
+            raise
 
     async def update_profile(
         self, user: UserDB, profile_data: dict, avatar: UploadFile | None = None
@@ -341,7 +396,12 @@ class AuthService:
 
             profile.avatar = file_url
 
-        await self.db.commit()
+        try:
+            await self.db.commit()
+        except Exception:
+            await self.db.rollback()
+            raise
+
         await self.db.refresh(profile)
         return profile
 
@@ -363,9 +423,12 @@ class AuthService:
 
         new_token = ActivationTokenDB(user_id=user.id)
         self.db.add(new_token)
-        await self.db.commit()
 
-        from src.accounts.tasks import send_activation_email_task
+        try:
+            await self.db.commit()
+        except Exception:
+            await self.db.rollback()
+            raise
 
         send_activation_email_task.delay(user.email, new_token.token)
 
@@ -382,7 +445,12 @@ class AuthService:
 
         user.password = data.new_password
         self.db.add(user)
-        await self.db.commit()
+
+        try:
+            await self.db.commit()
+        except Exception:
+            await self.db.rollback()
+            raise
 
     async def admin_update_user(
         self, user_id: int, data: AdminUserUpdateSchema
@@ -411,6 +479,11 @@ class AuthService:
                 raise HTTPException(status_code=400, detail="Invalid group ID")
             user.group_id = data.group_id
 
-        await self.db.commit()
+        try:
+            await self.db.commit()
+        except Exception:
+            await self.db.rollback()
+            raise
+
         await self.db.refresh(user)
         return user
