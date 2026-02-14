@@ -22,7 +22,7 @@ from src.accounts.exceptions import (
     AccountNotActiveException,
     InvalidTokenException,
     UserAlreadyExistsException,
-    UserNotFoundException,
+    UserNotFoundException, InvalidCredentialsException,
 )
 from src.accounts.models import UserDB
 from src.accounts.schemas import (
@@ -118,6 +118,7 @@ async def activate_account(
     summary="Login via JSON (Standard)",
     responses={401: {"description": "Unauthorized - Invalid email or password."}},
 )
+@router.post("/login/")
 async def login_user(
     login_data: LoginRequestSchema,
     response: Response,
@@ -125,30 +126,19 @@ async def login_user(
     cart_service: Annotated[CartService, Depends(get_cart_service)],
     cart_id: str | None = Cookie(None),
 ):
-    """
-    Authenticates a user and returns JWT access and refresh tokens.
-
-    If an anonymous cart exists (via cookie), it will be merged with the
-    user's persistent cart upon successful login.
-    """
     try:
-        token_pair = await service.login_user(login_data)
-    except Exception:
-        raise HTTPException(status_code=401, detail="Auth failed")
+        token_pair = await service.login_user(
+            login_data=login_data,
+            cart_id=cart_id,
+            cart_service=cart_service,
+        )
+    except InvalidCredentialsException:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    except AccountNotActiveException:
+        raise HTTPException(status_code=403, detail="Account not activated")
 
     if cart_id:
-        try:
-            payload = service.jwt_manager.decode_access_token(token_pair.access_token)
-            user_id = payload.get("user_id")
-
-            if user_id:
-                await cart_service.merge_anon_cart(
-                    anon_id=cart_id, user_id=int(user_id)
-                )
-                response.delete_cookie(key="cart_id")
-
-        except Exception as e:
-            logging.error(f"Failed to merge cart: {e}")
+        response.delete_cookie(key="cart_id")
 
     return token_pair
 
