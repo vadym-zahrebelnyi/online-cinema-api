@@ -23,6 +23,7 @@ from src.accounts.models import UserDB
 from src.cart.dependencies import get_cart_service
 from src.cart.services import CartService
 from src.core.database import get_db
+from src.core.dependencies import PaginationParams, get_pagination
 from src.orders.crud import (
     cancel_order,
     create_order,
@@ -59,6 +60,7 @@ async def get_my_orders_endpoint(
 @router.get("/admin/all", response_model=list[OrderReadSchema])
 async def get_all_orders_admin(
     filters: Annotated[OrderFilter, FilterDepends(OrderFilter)],
+    pagination: Annotated[PaginationParams, Depends(get_pagination)],
     db: Annotated[AsyncSession, Depends(get_db)],
     _: Annotated[UserDB, Depends(allow_admin)],
 ):
@@ -73,7 +75,7 @@ async def get_all_orders_admin(
     Returns:
         List[OrderReadSchema]: List of orders matching the filters.
     """
-    return await get_all_orders_filtered(db, filters)
+    return await get_all_orders_filtered(db, filters, pagination)
 
 
 @router.post("/", response_model=OrderReadSchema)

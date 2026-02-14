@@ -1,5 +1,7 @@
 from typing import AsyncGenerator
 
+from fastapi import Query
+from pydantic import BaseModel
 from redis.asyncio import Redis
 
 from src.core.settings import settings
@@ -23,3 +25,15 @@ async def get_redis() -> AsyncGenerator[Redis, None]:
         yield redis
     finally:
         await redis.close()
+
+
+class PaginationParams(BaseModel):
+    limit: int
+    offset: int
+
+
+def get_pagination(
+    limit: int = Query(5, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> PaginationParams:
+    return PaginationParams(limit=limit, offset=offset)
