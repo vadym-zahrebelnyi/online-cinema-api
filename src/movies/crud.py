@@ -1,8 +1,16 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import IntegrityError
 
 from src.movies.models import CertificationDB, GenreDB, MovieDB
+from src.movies.exceptions import (
+    MovieAlreadyExistsException,
+    MovieUpdateException,
+    GenreAlreadyExistsException,
+    CertificationAlreadyExistsException,
+    AppException,
+)
 
 
 async def get_movie_by_id(db: AsyncSession, movie_id: int) -> MovieDB | None:
@@ -28,25 +36,43 @@ async def get_movie_by_uuid(db: AsyncSession, movie_uuid) -> MovieDB | None:
 
 
 async def create_movie(db: AsyncSession, movie: MovieDB) -> MovieDB:
-    """Create a new movie in the database."""
-    db.add(movie)
-    await db.commit()
-    await db.refresh(movie)
-    return movie
+    """Create a new movie in the database with transaction safety."""
+    try:
+        db.add(movie)
+        await db.commit()
+        await db.refresh(movie)
+        return movie
+    except IntegrityError:
+        await db.rollback()
+        raise MovieAlreadyExistsException()
+    except Exception:
+        await db.rollback()
+        raise MovieUpdateException()
 
 
 async def update_movie(db: AsyncSession, movie: MovieDB) -> MovieDB:
-    """Update an existing movie in the database."""
-    db.add(movie)
-    await db.commit()
-    await db.refresh(movie)
-    return movie
+    """Update an existing movie in the database with transaction safety."""
+    try:
+        db.add(movie)
+        await db.commit()
+        await db.refresh(movie)
+        return movie
+    except IntegrityError:
+        await db.rollback()
+        raise MovieUpdateException()
+    except Exception:
+        await db.rollback()
+        raise AppException(status_code=500, detail="Unexpected error while updating movie")
 
 
 async def delete_movie(db: AsyncSession, movie: MovieDB) -> None:
-    """Delete a movie from the database."""
-    await db.delete(movie)
-    await db.commit()
+    """Delete a movie from the database with transaction safety."""
+    try:
+        await db.delete(movie)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise AppException(status_code=500, detail="Unexpected error while deleting movie")
 
 
 async def list_movies(
@@ -80,11 +106,18 @@ async def get_genre_with_movies(db: AsyncSession, genre_id: int) -> GenreDB | No
 
 
 async def create_genre(db: AsyncSession, genre: GenreDB) -> GenreDB:
-    """Create a new genre."""
-    db.add(genre)
-    await db.commit()
-    await db.refresh(genre)
-    return genre
+    """Create a new genre with transaction safety."""
+    try:
+        db.add(genre)
+        await db.commit()
+        await db.refresh(genre)
+        return genre
+    except IntegrityError:
+        await db.rollback()
+        raise GenreAlreadyExistsException()
+    except Exception:
+        await db.rollback()
+        raise AppException(status_code=500, detail="Unexpected error while creating genre")
 
 
 async def list_genres(db: AsyncSession) -> list[GenreDB]:
@@ -94,9 +127,13 @@ async def list_genres(db: AsyncSession) -> list[GenreDB]:
 
 
 async def delete_genre(db: AsyncSession, genre: GenreDB) -> None:
-    """Delete a genre."""
-    await db.delete(genre)
-    await db.commit()
+    """Delete a genre with transaction safety."""
+    try:
+        await db.delete(genre)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise AppException(status_code=500, detail="Unexpected error while deleting genre")
 
 
 async def get_certification_by_id(
@@ -122,11 +159,18 @@ async def get_certification_with_movies(
 async def create_certification(
     db: AsyncSession, cert: CertificationDB
 ) -> CertificationDB:
-    """Create a new certification."""
-    db.add(cert)
-    await db.commit()
-    await db.refresh(cert)
-    return cert
+    """Create a new certification with transaction safety."""
+    try:
+        db.add(cert)
+        await db.commit()
+        await db.refresh(cert)
+        return cert
+    except IntegrityError:
+        await db.rollback()
+        raise CertificationAlreadyExistsException()
+    except Exception:
+        await db.rollback()
+        raise AppException(status_code=500, detail="Unexpected error while creating certification")
 
 
 async def list_certifications(db: AsyncSession) -> list[CertificationDB]:
@@ -136,6 +180,10 @@ async def list_certifications(db: AsyncSession) -> list[CertificationDB]:
 
 
 async def delete_certification(db: AsyncSession, cert: CertificationDB) -> None:
-    """Delete a certification."""
-    await db.delete(cert)
-    await db.commit()
+    """Delete a certification with transaction safety."""
+    try:
+        await db.delete(cert)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise AppException(status_code=500, detail="Unexpected error while deleting certification")
