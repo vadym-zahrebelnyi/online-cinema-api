@@ -2,7 +2,6 @@ import csv
 import os
 from decimal import Decimal
 from datetime import datetime
-from typing import List, Optional
 
 from passlib.context import CryptContext
 from sqlalchemy import select
@@ -19,7 +18,7 @@ class DatabaseSeeder:
     It combines logic for seeding user groups, initial users, and movie data from a CSV file.
     """
 
-    def __init__(self, session: AsyncSession, movies_csv_path: Optional[str] = None):
+    def __init__(self, session: AsyncSession, movies_csv_path: str | None = None):
         self.session = session
         self.movies_csv_path = movies_csv_path
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -103,7 +102,7 @@ class DatabaseSeeder:
         await self.session.commit()
         print("Default user groups and users seeding completed.")
 
-    async def create_superuser(self, email: str, password: str, first_name: str, last_name: str) -> Optional[UserDB]:
+    async def create_superuser(self, email: str, password: str, first_name: str, last_name: str) -> UserDB | None:
         """
         Creates a superuser (admin) with the given credentials.
         Ensures ADMIN group exists.
@@ -189,7 +188,7 @@ class DatabaseSeeder:
                             continue
 
                     score_str = row.get("score")
-                    imdb_score = Decimal(score_str) if score_str else Decimal(0.0)
+                    imdb_score = Decimal(score_str) if score_str else Decimal("0")
 
                     description = row.get("overview", "")
                     revenue_str = row.get("revenue")
@@ -200,7 +199,7 @@ class DatabaseSeeder:
                         except Exception:
                             print(f"  Warning: Could not parse revenue '{revenue_str}' for movie '{name}'. Setting gross to None.")
 
-                    movie_genres_list: List[GenreDB] = []
+                    movie_genres_list: list[GenreDB] = []
                     genre_str = row.get("genre")
                     if genre_str:
                         for g_name in genre_str.split(','):
@@ -209,8 +208,8 @@ class DatabaseSeeder:
                                 genre_obj = await self.get_or_create(GenreDB, name=stripped_g_name)
                                 movie_genres_list.append(genre_obj)
 
-                    movie_stars_list: List[StarDB] = []
-                    movie_directors_list: List[DirectorDB] = []
+                    movie_stars_list: list[StarDB] = []
+                    movie_directors_list: list[DirectorDB] = []
                     crew_str = row.get("crew")
                     if crew_str:
                         for c_name in crew_str.split(','):
