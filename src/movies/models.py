@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from src.orders.models import OrderItemDB
 
 from sqlalchemy import (
+    CheckConstraint,
     Column,
     ForeignKey,
     Numeric,
@@ -14,7 +15,6 @@ from sqlalchemy import (
     Table,
     Text,
     UniqueConstraint,
-    CheckConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import (

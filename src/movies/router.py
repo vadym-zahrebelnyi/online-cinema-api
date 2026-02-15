@@ -5,7 +5,7 @@ from fastapi_filter import FilterDepends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.accounts.dependencies import allow_admin, allow_moderator
-from src.core.dependencies import get_db, get_pagination, PaginationParams
+from src.core.dependencies import PaginationParams, get_db, get_pagination
 from src.movies import schemas, service
 from src.movies.exceptions import (
     CertificationNotFoundException,
@@ -15,6 +15,8 @@ from src.movies.exceptions import (
 from src.movies.filters import GenreFilter, MovieFilter
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
+PaginationDep = Annotated[PaginationParams, Depends(get_pagination)]
+
 router = APIRouter(tags=["Movies"])
 
 
@@ -56,7 +58,7 @@ async def get_movie(movie_id: int, db: DbSession):
 async def list_movies(
     db: DbSession,
     filters: Annotated[MovieFilter, FilterDepends(MovieFilter)],
-    pagination: PaginationParams = Depends(get_pagination),
+    pagination: PaginationDep,
 ):
     """Return filtered and paginated movie catalog."""
     return await service.get_movies_catalog(db, filters, pagination)
@@ -112,7 +114,7 @@ async def create_genre(genre: schemas.GenreCreateSchema, db: DbSession):
 async def list_genres(
     db: DbSession,
     filters: Annotated[GenreFilter, FilterDepends(GenreFilter)],
-    pagination: PaginationParams = Depends(get_pagination),
+    pagination: PaginationDep,
 ):
     """Return filtered and paginated genre list."""
     return await service.list_genres(db, filters, pagination)

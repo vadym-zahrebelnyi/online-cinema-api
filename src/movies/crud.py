@@ -1,16 +1,16 @@
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy.exc import IntegrityError
 
-from src.movies.models import CertificationDB, GenreDB, MovieDB
 from src.movies.exceptions import (
+    AppException,
+    CertificationAlreadyExistsException,
+    GenreAlreadyExistsException,
     MovieAlreadyExistsException,
     MovieUpdateException,
-    GenreAlreadyExistsException,
-    CertificationAlreadyExistsException,
-    AppException,
 )
+from src.movies.models import CertificationDB, GenreDB, MovieDB
 
 
 async def get_movie_by_id(db: AsyncSession, movie_id: int) -> MovieDB | None:
@@ -62,7 +62,9 @@ async def update_movie(db: AsyncSession, movie: MovieDB) -> MovieDB:
         raise MovieUpdateException()
     except Exception:
         await db.rollback()
-        raise AppException(status_code=500, detail="Unexpected error while updating movie")
+        raise AppException(
+            status_code=500, detail="Unexpected error while updating movie"
+        )
 
 
 async def delete_movie(db: AsyncSession, movie: MovieDB) -> None:
@@ -72,7 +74,9 @@ async def delete_movie(db: AsyncSession, movie: MovieDB) -> None:
         await db.commit()
     except Exception:
         await db.rollback()
-        raise AppException(status_code=500, detail="Unexpected error while deleting movie")
+        raise AppException(
+            status_code=500, detail="Unexpected error while deleting movie"
+        )
 
 
 async def list_movies(
@@ -117,7 +121,9 @@ async def create_genre(db: AsyncSession, genre: GenreDB) -> GenreDB:
         raise GenreAlreadyExistsException()
     except Exception:
         await db.rollback()
-        raise AppException(status_code=500, detail="Unexpected error while creating genre")
+        raise AppException(
+            status_code=500, detail="Unexpected error while creating genre"
+        )
 
 
 async def list_genres(db: AsyncSession) -> list[GenreDB]:
@@ -133,7 +139,9 @@ async def delete_genre(db: AsyncSession, genre: GenreDB) -> None:
         await db.commit()
     except Exception:
         await db.rollback()
-        raise AppException(status_code=500, detail="Unexpected error while deleting genre")
+        raise AppException(
+            status_code=500, detail="Unexpected error while deleting genre"
+        )
 
 
 async def get_certification_by_id(
@@ -170,7 +178,9 @@ async def create_certification(
         raise CertificationAlreadyExistsException()
     except Exception:
         await db.rollback()
-        raise AppException(status_code=500, detail="Unexpected error while creating certification")
+        raise AppException(
+            status_code=500, detail="Unexpected error while creating certification"
+        )
 
 
 async def list_certifications(db: AsyncSession) -> list[CertificationDB]:
@@ -186,4 +196,6 @@ async def delete_certification(db: AsyncSession, cert: CertificationDB) -> None:
         await db.commit()
     except Exception:
         await db.rollback()
-        raise AppException(status_code=500, detail="Unexpected error while deleting certification")
+        raise AppException(
+            status_code=500, detail="Unexpected error while deleting certification"
+        )

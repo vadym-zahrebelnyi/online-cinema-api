@@ -2,6 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from src.core.dependencies import PaginationParams
 from src.movies import crud, models, schemas
 from src.movies.exceptions import (
     CertificationInUseException,
@@ -11,7 +12,6 @@ from src.movies.exceptions import (
     MovieHasOrdersException,
     MovieNotFoundException,
 )
-from src.core.dependencies import PaginationParams
 
 
 async def create_movie(
@@ -44,9 +44,7 @@ async def create_movie(
         movie.stars = result.scalars().all()
     if data.director_ids:
         result = await db.execute(
-            select(models.DirectorDB).where(
-                models.DirectorDB.id.in_(data.director_ids)
-            )
+            select(models.DirectorDB).where(models.DirectorDB.id.in_(data.director_ids))
         )
         movie.directors = result.scalars().all()
 
@@ -104,14 +102,11 @@ async def get_movies_catalog(
     Return movies with filtering, eager-loaded relations,
     and pagination to avoid N+1 queries and DB overload.
     """
-    stmt = (
-        select(models.MovieDB)
-        .options(
-            selectinload(models.MovieDB.genres),
-            selectinload(models.MovieDB.directors),
-            selectinload(models.MovieDB.stars),
-            selectinload(models.MovieDB.certification),
-        )
+    stmt = select(models.MovieDB).options(
+        selectinload(models.MovieDB.genres),
+        selectinload(models.MovieDB.directors),
+        selectinload(models.MovieDB.stars),
+        selectinload(models.MovieDB.certification),
     )
 
     stmt = filters.filter(stmt)
