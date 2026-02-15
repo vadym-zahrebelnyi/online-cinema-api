@@ -24,7 +24,7 @@ from sqlalchemy.orm import selectinload
 
 from src.cart.models import CartDB, CartItemDB
 from src.cart.services import CartService
-from src.core.dependencies import PaginationParams
+from src.core import PaginationParams
 from src.orders.exceptions import (
     CartIsEmptyError,
     OrderNotFoundError,

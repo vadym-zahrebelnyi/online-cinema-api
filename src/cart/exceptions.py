@@ -40,3 +40,13 @@ class MovieNotFoundError(CartException):
 
     def __init__(self):
         super().__init__("Movie not found")
+
+
+class CartLimitExceededError(CartException):
+    """
+    Raised when a user attempts to add an item to their cart, but doing so
+    would exceed the predefined maximum limit for unique cart items.
+    """
+
+    def __init__(self, limit: int):
+        super().__init__(f"Cart limit of {limit} unique items exceeded.")

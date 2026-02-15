@@ -231,12 +231,12 @@ class AuthService:
         self, token_data: RefreshTokenRequestSchema
     ) -> TokenPairSchema:
         """
-            Refreshes JWT access and refresh tokens using token rotation.
+        Refreshes JWT access and refresh tokens using token rotation.
 
-            Deletes the old refresh token and creates a new token pair.
+        Deletes the old refresh token and creates a new token pair.
 
-            :raises InvalidTokenException: If token is invalid or expired.
-            :raises UserNotFoundException: If associated user does not exist.
+        :raises InvalidTokenException: If token is invalid or expired.
+        :raises UserNotFoundException: If associated user does not exist.
         """
 
         try:
@@ -363,7 +363,7 @@ class AuthService:
 
     async def logout_user(self, refresh_token: str) -> None:
         """
-            Logs out a user by deleting the provided refresh token from the database.
+        Logs out a user by deleting the provided refresh token from the database.
         """
         stmt = delete(RefreshTokenDB).where(RefreshTokenDB.token == refresh_token)
         await self.db.execute(stmt)
@@ -417,8 +417,8 @@ class AuthService:
 
     async def resend_activation_email(self, email: str) -> None:
         """
-            Generates a new activation token and sends activation email
-            if the user exists and is not active.
+        Generates a new activation token and sends activation email
+        if the user exists and is not active.
         """
         stmt = select(UserDB).where(UserDB.email == email)
         result = await self.db.execute(stmt)
@@ -446,9 +446,9 @@ class AuthService:
         self, user: UserDB, data: ChangePasswordRequestSchema
     ) -> None:
         """
-            Allows an authenticated user to change their password.
+        Allows an authenticated user to change their password.
 
-            Verifies the old password before updating.
+        Verifies the old password before updating.
         """
         if not user.verify_password(data.old_password):
             raise InvalidCredentialsException()
@@ -466,7 +466,7 @@ class AuthService:
         self, user_id: int, data: AdminUserUpdateSchema
     ) -> UserDB:
         """
-            Allows admin to update user activation status or group.
+        Allows admin to update user activation status or group.
         """
         stmt = (
             select(UserDB)

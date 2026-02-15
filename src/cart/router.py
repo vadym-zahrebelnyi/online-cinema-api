@@ -6,8 +6,10 @@ from src.accounts.dependencies import allow_admin, get_current_user_optional
 from src.accounts.models import UserDB
 from src.cart.dependencies import get_anon_cart_id, get_cart_service
 from src.cart.exceptions import (
+    CartLimitExceededError,
     MovieAlreadyInCartError,
     MovieAlreadyOwnedError,
+    MovieNotFoundError,
 )
 from src.cart.schemas import CartReadSchema
 from src.cart.services import CartService
@@ -76,8 +78,19 @@ async def add_to_cart(
             status_code=status.HTTP_409_CONFLICT,
             detail="Movie is already in your cart.",
         )
+    except MovieNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found."
+        )
+    except CartLimitExceededError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(e),
+        )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
     return {"status": "ok", "message": "Movie added to cart"}
 

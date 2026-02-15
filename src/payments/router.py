@@ -10,7 +10,7 @@ from src.accounts.dependencies import (
     get_current_user,
 )
 from src.accounts.models import UserDB
-from src.core.database import get_db
+from src.core import get_db
 
 from .crud import payment_crud
 from .exceptions import (

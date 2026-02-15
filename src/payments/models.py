@@ -18,7 +18,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.database import Base
+from src.core import Base
 
 if TYPE_CHECKING:
     from src.accounts.models import UserDB
@@ -157,7 +157,9 @@ class PaymentItemDB(Base):
     payment: Mapped["PaymentDB"] = relationship(
         "PaymentDB", back_populates="payment_items"
     )
-    order_item: Mapped["OrderItemDB"] = relationship("OrderItemDB")
+    order_item: Mapped["OrderItemDB"] = relationship(
+        "OrderItemDB", back_populates="payment_items"
+    )
 
     @property
     def movie_title(self) -> str:

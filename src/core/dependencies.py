@@ -3,7 +3,9 @@ from typing import AsyncGenerator
 from fastapi import Query
 from pydantic import BaseModel
 from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.database import SessionLocal
 from src.core.settings import settings
 
 
@@ -37,3 +39,18 @@ def get_pagination(
     offset: int = Query(0, ge=0),
 ) -> PaginationParams:
     return PaginationParams(limit=limit, offset=offset)
+
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """
+    Dependency generator for database sessions.
+
+    Yields an asynchronous database session for the duration of a request.
+    Ensures that the session is properly closed after the request is processed,
+    even if an error occurs.
+
+    Yields:
+        AsyncSession: An active SQLAlchemy asynchronous session.
+    """
+    async with SessionLocal() as session:
+        yield session

@@ -4,8 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from sqlalchemy import select
 
-from src.cart.models import CartDB, CartItemDB
-from src.core.dependencies import PaginationParams
+from src.core import PaginationParams
 from src.orders.crud import (
     cancel_order,
     create_order,
@@ -120,15 +119,10 @@ async def test_create_order_cart_empty():
 
 @pytest.mark.asyncio
 async def test_create_order_success(monkeypatch):
-    """
-    Test successful creation of an order including DB interactions and cart processing.
-    """
     db = AsyncMock()
     cart_service = AsyncMock()
 
     class MockMovie:
-        """Mock movie object with id and price."""
-
         def __init__(self, id, price):
             self.id = id
             self.price = price
@@ -136,12 +130,13 @@ async def test_create_order_success(monkeypatch):
     movie1 = MockMovie(1, Decimal("10.5"))
     movie2 = MockMovie(2, Decimal("5.25"))
 
-    cart_item1 = CartItemDB()
+    cart_item1 = MagicMock()
     cart_item1.movie = movie1
-    cart_item2 = CartItemDB()
+
+    cart_item2 = MagicMock()
     cart_item2.movie = movie2
 
-    cart = CartDB()
+    cart = MagicMock()
     cart.items = [cart_item1, cart_item2]
 
     db.scalar = AsyncMock(

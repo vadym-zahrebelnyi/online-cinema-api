@@ -4,7 +4,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.accounts.models import UserDB
-from src.core.database import get_db
+from src.core import get_db
 from src.orders import crud as order_crud
 from src.orders.models import OrderStatusEnum
 from src.payments.crud import payment_crud

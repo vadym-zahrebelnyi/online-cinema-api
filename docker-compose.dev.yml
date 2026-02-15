@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    container_name: online_cinema_api
+    container_name: web
     ports:
       - "8000:8000"
     env_file:
@@ -25,7 +25,7 @@ services:
 
   db:
     image: postgres:16-alpine
-    container_name: cinema_db
+    container_name: db
     env_file:
       - .env
     ports:
@@ -43,7 +43,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    container_name: cinema_migrator
+    container_name: migrator
     command: alembic upgrade head
     env_file:
       - .env
@@ -55,6 +55,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
+    container_name: celery
     command: celery -A src.celery_app worker --loglevel=info
     env_file:
       - .env
@@ -69,6 +70,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
+    container_name: celery-beat
     command: celery -A src.celery_app beat --loglevel=info
     env_file:
       - .env
@@ -81,7 +83,7 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: minio-cinema
+    container_name: minio
     command: server --console-address ":9001" /data
     ports:
       - "9000:9000"
@@ -101,7 +103,7 @@ services:
     build:
       context: .
       dockerfile: docker/minio/Dockerfile
-    container_name: minio_setup
+    container_name: minio-setup
     depends_on:
       minio:
         condition: service_healthy
@@ -116,7 +118,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: cinema_redis
+    container_name: redis
     ports:
       - "6379:6379"
     healthcheck:
@@ -128,7 +130,7 @@ services:
 
   stripe-cli:
     image: stripe/stripe-cli:latest
-    container_name: stripe_cli
+    container_name: stripe-cli
     command: listen --forward-to web:8000/api/v1/payments/webhooks/stripe --api-key ${STRIPE_SECRET_KEY}
     env_file:
       - .env

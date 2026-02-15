@@ -62,7 +62,7 @@ class CartCRUD:
         """
         cart = CartDB(user_id=user_id)
         self.db.add(cart)
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(cart)
         return cart
 
@@ -79,7 +79,8 @@ class CartCRUD:
         """
         item = CartItemDB(cart_id=cart_id, movie_id=movie_id)
         self.db.add(item)
-        await self.db.commit()
+        await self.db.flush()
+        await self.db.refresh(item)
         return item
 
     async def is_movie_available_to_buy(self, user_id: int, movie_id: int) -> bool:
@@ -140,7 +141,6 @@ class CartCRUD:
                 CartItemDB.cart_id == cart_id, CartItemDB.movie_id == movie_id
             )
         )
-        await self.db.commit()
 
     async def clear_cart(self, cart_id: int) -> None:
         """
@@ -150,7 +150,6 @@ class CartCRUD:
             cart_id (int): The ID of the cart to empty.
         """
         await self.db.execute(delete(CartItemDB).where(CartItemDB.cart_id == cart_id))
-        await self.db.commit()
 
     async def get_movie(self, movie_id: int) -> MovieDB | None:
         """

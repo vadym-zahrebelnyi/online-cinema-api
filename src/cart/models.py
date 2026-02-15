@@ -84,4 +84,4 @@ class CartItemDB(Base):
     )
 
     cart: Mapped["CartDB"] = relationship(back_populates="items")
-    movie: Mapped["MovieDB"] = relationship(lazy="joined")
+    movie: Mapped["MovieDB"] = relationship(lazy="joined", back_populates="cart_items")
