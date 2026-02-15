@@ -64,17 +64,24 @@ class DatabaseSeeder:
         users_to_create = [
             {
                 "email": os.getenv("ADMIN_EMAIL", "admin@cinema.com"),
-                "password": os.getenv("ADMIN_PASSWORD", "!Sadmin123"),
+                "password": os.getenv("ADMIN_PASSWORD", "!Sadmin_p@ss123"),
                 "first_name": "Super",
                 "last_name": "Admin",
                 "group_id": group_mapping["ADMIN"],
             },
             {
                 "email": os.getenv("MOD_EMAIL", "moderator@cinema.com"),
-                "password": os.getenv("MOD_PASSWORD", "!Smoderator123"),
+                "password": os.getenv("MOD_PASSWORD", "!Smoderator_p@ss123"),
                 "first_name": "Cinema",
                 "last_name": "Moderator",
                 "group_id": group_mapping["MODERATOR"],
+            },
+            {
+                "email": os.getenv("USER_EMAIL", "user@cinema.com"),
+                "password": os.getenv("USER_PASSWORD", "!Suser_p@ss123"),
+                "first_name": "Cinema",
+                "last_name": "User",
+                "group_id": group_mapping["USER"],
             },
         ]
 
