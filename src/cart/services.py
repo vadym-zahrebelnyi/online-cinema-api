@@ -38,7 +38,9 @@ class CartService:
         self.repo = repo
         self.redis = redis
 
-    async def get_cart(self, user_id: int | None, anon_id: str | None) -> CartReadSchema:
+    async def get_cart(
+        self, user_id: int | None, anon_id: str | None
+    ) -> CartReadSchema:
         """
         Retrieve the current cart state.
 
@@ -118,7 +120,9 @@ class CartService:
         if user_id:
             session = self.repo.db
             try:
-                already_owned = await self.repo.is_movie_available_to_buy(user_id, movie_id)
+                already_owned = await self.repo.is_movie_available_to_buy(
+                    user_id, movie_id
+                )
                 if already_owned:
                     raise MovieAlreadyOwnedError()
 
@@ -147,7 +151,9 @@ class CartService:
             await self.redis.sadd(key, str(movie_id))
             await self.redis.expire(key, 604800)
 
-    async def remove_item(self, movie_id: int, user_id: int | None, anon_id: str | None):
+    async def remove_item(
+        self, movie_id: int, user_id: int | None, anon_id: str | None
+    ):
         """
         Remove a movie from the cart.
 
@@ -237,4 +243,3 @@ class CartService:
         except:
             await session.rollback()
             raise
-

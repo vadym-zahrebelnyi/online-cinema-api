@@ -157,7 +157,9 @@ class PaymentItemDB(Base):
     payment: Mapped["PaymentDB"] = relationship(
         "PaymentDB", back_populates="payment_items"
     )
-    order_item: Mapped["OrderItemDB"] = relationship("OrderItemDB", back_populates="payment_items")
+    order_item: Mapped["OrderItemDB"] = relationship(
+        "OrderItemDB", back_populates="payment_items"
+    )
 
     @property
     def movie_title(self) -> str:

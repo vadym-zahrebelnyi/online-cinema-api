@@ -1,6 +1,6 @@
 from .database import Base
+from .dependencies import PaginationParams, get_db, get_pagination, get_redis
 from .settings import settings
-from .dependencies import PaginationParams, get_db, get_redis, get_pagination
 
 __all__ = [
     "settings",

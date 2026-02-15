@@ -79,14 +79,18 @@ async def add_to_cart(
             detail="Movie is already in your cart.",
         )
     except MovieNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found."
+        )
     except CartLimitExceededError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
         )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
     return {"status": "ok", "message": "Movie added to cart"}
 

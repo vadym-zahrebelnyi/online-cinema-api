@@ -109,5 +109,3 @@ async def test_get_movies_by_ids(crud: CartCRUD, mock_db: AsyncMock):
     result = await crud.get_movies_by_ids([1, 2])
     assert result == [movie1, movie2]
     mock_db.execute.assert_awaited_once()
-
-

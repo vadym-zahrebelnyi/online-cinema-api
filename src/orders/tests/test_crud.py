@@ -161,10 +161,7 @@ async def test_create_order_success(monkeypatch):
     db.flush = AsyncMock()
     db.commit = AsyncMock()
 
-    monkeypatch.setattr(
-        "src.orders.crud.create_order_items_from_cart",
-        AsyncMock()
-    )
+    monkeypatch.setattr("src.orders.crud.create_order_items_from_cart", AsyncMock())
 
     order = await create_order(db, user_id=1, cart_service=cart_service)
 

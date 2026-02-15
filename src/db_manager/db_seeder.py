@@ -1,15 +1,18 @@
 import csv
+import logging
 import os
-from decimal import Decimal
 from datetime import datetime
+from decimal import Decimal
 
 from passlib.context import CryptContext
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.accounts.models import UserDB, UserGroupDB, UserProfileDB
-from src.movies.models import MovieDB, GenreDB, StarDB, DirectorDB, CertificationDB
+from src.movies.models import CertificationDB, DirectorDB, GenreDB, MovieDB, StarDB
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseSeeder:
@@ -22,7 +25,9 @@ class DatabaseSeeder:
         self.session = session
         self.movies_csv_path = movies_csv_path
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        print(f"DatabaseSeeder initialized. Movies CSV path: {self.movies_csv_path or 'Not provided'}")
+        logger.info(
+            f"DatabaseSeeder initialized. Movies CSV path: {self.movies_csv_path or 'Not provided'}"
+        )
 
     def get_password_hash(self, password: str) -> str:
         return self.pwd_context.hash(password)
@@ -47,14 +52,14 @@ class DatabaseSeeder:
         Ensures default user groups are present and seeds initial admin/moderator users
         from environment variables.
         """
-        print("Ensuring user groups are present and seeding default users...")
+        logger.info("Ensuring user groups are present and seeding default users...")
         group_mapping = {}
         groups = ["USER", "MODERATOR", "ADMIN"]
 
         for group_name in groups:
             group = await self.get_or_create(UserGroupDB, name=group_name)
             group_mapping[group_name] = group.id
-            print(f"  User group '{group_name}' (ID: {group.id}) ensured.")
+            logger.info(f"  User group '{group_name}' (ID: {group.id}) ensured.")
 
         users_to_create = [
             {
@@ -95,24 +100,30 @@ class DatabaseSeeder:
                     last_name=user_data["last_name"],
                 )
                 self.session.add(new_profile)
-                print(f"  Added default user: '{new_user.email}'")
+                logger.info(f"  Added default user: '{new_user.email}'")
             else:
-                print(f"  Default user '{user_data['email']}' already exists. Skipping.")
-        
-        await self.session.commit()
-        print("Default user groups and users seeding completed.")
+                logger.info(
+                    f"  Default user '{user_data['email']}' already exists. Skipping."
+                )
 
-    async def create_superuser(self, email: str, password: str, first_name: str, last_name: str) -> UserDB | None:
+        await self.session.commit()
+        logger.info("Default user groups and users seeding completed.")
+
+    async def create_superuser(
+        self, email: str, password: str, first_name: str, last_name: str
+    ) -> UserDB | None:
         """
         Creates a superuser (admin) with the given credentials.
         Ensures ADMIN group exists.
         Returns the created UserDB object or None if user already exists or an error occurs.
         """
-        print(f"Attempting to create superuser: {email}...")
+        logger.info(f"Attempting to create superuser: {email}...")
         try:
             admin_group = await self.get_or_create(UserGroupDB, name="ADMIN")
             if not admin_group:
-                print("Error: Could not ensure ADMIN group exists for superuser creation.")
+                logger.error(
+                    "Error: Could not ensure ADMIN group exists for superuser creation."
+                )
                 return None
 
             stmt = select(UserDB).where(UserDB.email == email)
@@ -120,7 +131,7 @@ class DatabaseSeeder:
             existing_user = result.scalars().first()
 
             if existing_user:
-                print(f"Superuser '{email}' already exists. Skipping creation.")
+                logger.info(f"Superuser '{email}' already exists. Skipping creation.")
                 return None
 
             new_user = UserDB(
@@ -141,15 +152,15 @@ class DatabaseSeeder:
             self.session.add(new_profile)
 
             await self.session.commit()
-            print(f"Superuser '{email}' created successfully.")
+            logger.info(f"Superuser '{email}' created successfully.")
             return new_user
         except SQLAlchemyError as e:
             await self.session.rollback()
-            print(f"Database error creating superuser '{email}': {e}")
+            logger.error(f"Database error creating superuser '{email}': {e}")
             raise
         except Exception as e:
             await self.session.rollback()
-            print(f"Error creating superuser '{email}': {e}")
+            logger.error(f"Error creating superuser '{email}': {e}")
             raise
 
     async def seed_movies_from_csv(self):
@@ -157,17 +168,23 @@ class DatabaseSeeder:
         Seeds movie data from the specified CSV file into the database.
         """
         if not self.movies_csv_path:
-            print("Movies CSV path not provided. Skipping movie seeding.")
+            logger.info("Movies CSV path not provided. Skipping movie seeding.")
             return
 
-        print(f"Seeding movies from: {self.movies_csv_path}...")
+        logger.info(f"Seeding movies from: {self.movies_csv_path}...")
 
         if not os.path.exists(self.movies_csv_path):
-            print(f"Error: CSV file not found at {self.movies_csv_path}. Skipping movie seeding.")
+            logger.error(
+                f"Error: CSV file not found at {self.movies_csv_path}. Skipping movie seeding."
+            )
             return
 
-        default_certification = await self.get_or_create(CertificationDB, name="Not Rated")
-        print(f"  Default certification '{default_certification.name}' (ID: {default_certification.id}) ensured.")
+        default_certification = await self.get_or_create(
+            CertificationDB, name="Not Rated"
+        )
+        logger.info(
+            f"  Default certification '{default_certification.name}' (ID: {default_certification.id}) ensured."
+        )
 
         with open(self.movies_csv_path, mode="r", encoding="utf-8") as file:
             reader = csv.DictReader(file)
@@ -175,7 +192,7 @@ class DatabaseSeeder:
                 try:
                     name = row.get("names") or row.get("orig_title")
                     if not name:
-                        print(f"  Skipping row due to missing name: {row}")
+                        logger.warning(f"  Skipping row due to missing name: {row}")
                         continue
 
                     year = None
@@ -184,7 +201,9 @@ class DatabaseSeeder:
                         try:
                             year = datetime.strptime(date_x, "%Y-%m-%d").year
                         except ValueError:
-                            print(f"  Warning: Could not parse year from date_x '{date_x}' for movie '{name}'. Skipping movie.")
+                            logger.warning(
+                                f"  Warning: Could not parse year from date_x '{date_x}' for movie '{name}'. Skipping movie."
+                            )
                             continue
 
                     score_str = row.get("score")
@@ -193,32 +212,40 @@ class DatabaseSeeder:
                     description = row.get("overview", "")
                     revenue_str = row.get("revenue")
                     gross = None
-                    if revenue_str and revenue_str != '0.0':
+                    if revenue_str and revenue_str != "0.0":
                         try:
                             gross = Decimal(revenue_str)
                         except Exception:
-                            print(f"  Warning: Could not parse revenue '{revenue_str}' for movie '{name}'. Setting gross to None.")
+                            logger.warning(
+                                f"  Warning: Could not parse revenue '{revenue_str}' for movie '{name}'. Setting gross to None."
+                            )
 
                     movie_genres_list: list[GenreDB] = []
                     genre_str = row.get("genre")
                     if genre_str:
-                        for g_name in genre_str.split(','):
+                        for g_name in genre_str.split(","):
                             stripped_g_name = g_name.strip()
                             if stripped_g_name:
-                                genre_obj = await self.get_or_create(GenreDB, name=stripped_g_name)
+                                genre_obj = await self.get_or_create(
+                                    GenreDB, name=stripped_g_name
+                                )
                                 movie_genres_list.append(genre_obj)
 
                     movie_stars_list: list[StarDB] = []
                     movie_directors_list: list[DirectorDB] = []
                     crew_str = row.get("crew")
                     if crew_str:
-                        for c_name in crew_str.split(','):
+                        for c_name in crew_str.split(","):
                             stripped_c_name = c_name.strip()
                             if stripped_c_name:
-                                star_obj = await self.get_or_create(StarDB, name=stripped_c_name)
+                                star_obj = await self.get_or_create(
+                                    StarDB, name=stripped_c_name
+                                )
                                 movie_stars_list.append(star_obj)
 
-                                director_obj = await self.get_or_create(DirectorDB, name=stripped_c_name)
+                                director_obj = await self.get_or_create(
+                                    DirectorDB, name=stripped_c_name
+                                )
                                 movie_directors_list.append(director_obj)
 
                     time_placeholder = 120
@@ -226,10 +253,12 @@ class DatabaseSeeder:
                     meta_score_placeholder = None
                     price_placeholder = Decimal(9.99)
 
-                    stmt = select(MovieDB).where(MovieDB.name == name, MovieDB.year == year)
+                    stmt = select(MovieDB).where(
+                        MovieDB.name == name, MovieDB.year == year
+                    )
                     existing_movie = await self.session.execute(stmt)
                     if existing_movie.scalars().first():
-                        print(f"  Skipping existing movie: '{name}' ({year})")
+                        logger.info(f"  Skipping existing movie: '{name}' ({year})")
                         continue
 
                     new_movie = MovieDB(
@@ -250,18 +279,20 @@ class DatabaseSeeder:
                     self.session.add(new_movie)
                     await self.session.flush()
 
-                    print(f"  Added movie: '{new_movie.name}' ({new_movie.year})")
+                    logger.info(f"  Added movie: '{new_movie.name}' ({new_movie.year})")
 
                 except Exception as e:
-                    print(f"  Error processing row for movie '{row.get('names') or row.get('orig_title')}': {e}")
+                    logger.error(
+                        f"  Error processing row for movie '{row.get('names') or row.get('orig_title')}': {e}"
+                    )
             await self.session.commit()
-        print("Movie seeding completed.")
+        logger.info("Movie seeding completed.")
 
     async def seed_all(self):
         """
         Orchestrates the entire database seeding process.
         """
-        print("Starting full database seeding process...")
+        logger.info("Starting full database seeding process...")
         await self.seed_user_groups_and_default_users()
         await self.seed_movies_from_csv()
-        print("Full database seeding process completed.")
+        logger.info("Full database seeding process completed.")

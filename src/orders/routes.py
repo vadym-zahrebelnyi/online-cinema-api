@@ -22,7 +22,7 @@ from src.accounts.dependencies import allow_admin, get_current_user
 from src.accounts.models import UserDB
 from src.cart.dependencies import get_cart_service
 from src.cart.services import CartService
-from src.core import get_db, PaginationParams, get_pagination
+from src.core import PaginationParams, get_db, get_pagination
 from src.orders.crud import (
     cancel_order,
     create_order,

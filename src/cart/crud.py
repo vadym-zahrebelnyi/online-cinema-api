@@ -142,7 +142,6 @@ class CartCRUD:
             )
         )
 
-
     async def clear_cart(self, cart_id: int) -> None:
         """
         Remove all items from a specific cart.
@@ -151,7 +150,6 @@ class CartCRUD:
             cart_id (int): The ID of the cart to empty.
         """
         await self.db.execute(delete(CartItemDB).where(CartItemDB.cart_id == cart_id))
-
 
     async def get_movie(self, movie_id: int) -> MovieDB | None:
         """
