@@ -5,7 +5,7 @@ services:
       dockerfile: docker/Dockerfile
       args:
         APP_ENV: prod
-    container_name: online_cinema_api
+    container_name: web
     env_file:
       - .env
     command: >
@@ -25,7 +25,7 @@ services:
 
   db:
     image: postgres:16-alpine
-    container_name: cinema_db
+    container_name: db
     env_file:
       - .env
     volumes:
@@ -45,7 +45,7 @@ services:
       dockerfile: docker/Dockerfile
       args:
         APP_ENV: prod
-    container_name: cinema_migrator
+    container_name: migrator
     command: alembic upgrade head
     env_file:
       - .env
@@ -61,6 +61,7 @@ services:
       dockerfile: docker/Dockerfile
       args:
         APP_ENV: prod
+    container_name: celery
     command: celery -A src.celery_app worker --loglevel=info
     env_file:
       - .env
@@ -79,6 +80,7 @@ services:
       dockerfile: docker/Dockerfile
       args:
         APP_ENV: prod
+    container_name: celery-beat
     command: celery -A src.celery_app beat --loglevel=info
     env_file:
       - .env
@@ -93,7 +95,7 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: minio-cinema
+    container_name: minio
     ports:
       - "9001:9001"
     command: server --console-address ":9001" /data
@@ -114,7 +116,7 @@ services:
     build:
       context: .
       dockerfile: docker/minio/Dockerfile
-    container_name: minio_setup
+    container_name: minio-setup
     depends_on:
       minio:
         condition: service_healthy
@@ -131,7 +133,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: cinema_redis
+    container_name: redis
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
