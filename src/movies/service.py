@@ -11,6 +11,7 @@ from src.movies.exceptions import (
     MovieHasOrdersException,
     MovieNotFoundException,
 )
+from src.core.dependencies import PaginationParams
 
 
 async def create_movie(
@@ -92,8 +93,12 @@ async def delete_movie(db: AsyncSession, movie_id: int) -> None:
     await crud.delete_movie(db, movie)
 
 
-async def get_movies_catalog(db: AsyncSession, filters):
-    """Return movies with dynamic filtering and eager-loaded relations."""
+async def get_movies_catalog(
+    db: AsyncSession,
+    filters,
+    pagination: PaginationParams,  # <- пагінація
+):
+    """Return movies with dynamic filtering, eager-loaded relations, and pagination."""
     stmt = select(models.MovieDB).options(
         selectinload(models.MovieDB.genres),
         selectinload(models.MovieDB.directors),
@@ -101,7 +106,11 @@ async def get_movies_catalog(db: AsyncSession, filters):
         selectinload(models.MovieDB.certification),
     )
 
+    # застосовуємо фільтри
     stmt = filters.filter(stmt)
+
+    # застосовуємо пагінацію
+    stmt = stmt.limit(pagination.limit).offset(pagination.offset)
 
     result = await db.execute(stmt)
     return result.unique().scalars().all()
@@ -121,10 +130,17 @@ async def create_genre(
     return await crud.create_genre(db, genre)
 
 
-async def list_genres(db: AsyncSession, filters) -> list[models.GenreDB]:
-    """List genres with optional filtering."""
+async def list_genres(
+    db: AsyncSession,
+    filters,
+    pagination: PaginationParams,  # <- пагінація
+) -> list[models.GenreDB]:
+    """List genres with optional filtering and pagination."""
     stmt = select(models.GenreDB)
     stmt = filters.filter(stmt)
+
+    # застосовуємо пагінацію
+    stmt = stmt.limit(pagination.limit).offset(pagination.offset)
 
     result = await db.execute(stmt)
     return result.scalars().all()
