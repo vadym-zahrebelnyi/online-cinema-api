@@ -17,7 +17,7 @@ pytestmark = pytest.mark.asyncio
 async def test_create_movie_success():
     """Ensure a movie is created successfully with commit and refresh."""
     db = AsyncMock()
-    db.add = Mock()  # add is synchronous
+    db.add = Mock()
     movie = models.MovieDB(id=1, name="Test", year=2024)
 
     db.commit.return_value = None
