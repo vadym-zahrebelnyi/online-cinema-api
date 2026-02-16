@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from src.orders.models import OrderItemDB
 
 from sqlalchemy import (
+    CheckConstraint,
     Column,
     ForeignKey,
     Numeric,
@@ -121,6 +122,9 @@ class MovieDB(Base):
     __tablename__ = "movies"
     __table_args__ = (
         UniqueConstraint("name", "year", "time", name="uq_movie_identity"),
+        CheckConstraint("votes >= 0", name="ck_movies_votes_non_negative"),
+        CheckConstraint("price >= 0", name="ck_movies_price_non_negative"),
+        CheckConstraint("imdb >= 0 AND imdb <= 10", name="ck_movies_imdb_range"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

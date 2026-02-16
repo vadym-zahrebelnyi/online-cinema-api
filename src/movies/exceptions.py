@@ -24,6 +24,20 @@ class MovieHasOrdersException(AppException):
         )
 
 
+class MovieAlreadyExistsException(AppException):
+    """Raised when trying to create a movie that violates unique constraints."""
+
+    def __init__(self):
+        super().__init__(status_code=400, detail="Movie already exists")
+
+
+class MovieUpdateException(AppException):
+    """Raised when updating a movie fails due to constraints or invalid data."""
+
+    def __init__(self):
+        super().__init__(status_code=400, detail="Movie update failed")
+
+
 class GenreNotFoundException(AppException):
     """Raised when a genre is not found."""
 
@@ -38,6 +52,13 @@ class GenreInUseException(AppException):
         super().__init__(
             status_code=400, detail="Genre is used by movies and cannot be deleted"
         )
+
+
+class GenreAlreadyExistsException(AppException):
+    """Raised when trying to create a genre that violates unique constraints."""
+
+    def __init__(self):
+        super().__init__(status_code=400, detail="Genre already exists")
 
 
 class CertificationNotFoundException(AppException):
@@ -55,3 +76,10 @@ class CertificationInUseException(AppException):
             status_code=400,
             detail="Certification is used by movies and cannot be deleted",
         )
+
+
+class CertificationAlreadyExistsException(AppException):
+    """Raised when trying to create a certification that violates unique constraints."""
+
+    def __init__(self):
+        super().__init__(status_code=400, detail="Certification already exists")

@@ -2,6 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from src.core.dependencies import PaginationParams
 from src.movies import crud, models, schemas
 from src.movies.exceptions import (
     CertificationInUseException,
@@ -92,8 +93,15 @@ async def delete_movie(db: AsyncSession, movie_id: int) -> None:
     await crud.delete_movie(db, movie)
 
 
-async def get_movies_catalog(db: AsyncSession, filters):
-    """Return movies with dynamic filtering and eager-loaded relations."""
+async def get_movies_catalog(
+    db: AsyncSession,
+    filters,
+    pagination: PaginationParams,
+):
+    """
+    Return movies with filtering, eager-loaded relations,
+    and pagination to avoid N+1 queries and DB overload.
+    """
     stmt = select(models.MovieDB).options(
         selectinload(models.MovieDB.genres),
         selectinload(models.MovieDB.directors),
@@ -102,14 +110,31 @@ async def get_movies_catalog(db: AsyncSession, filters):
     )
 
     stmt = filters.filter(stmt)
+    stmt = stmt.limit(pagination.limit).offset(pagination.offset)
 
     result = await db.execute(stmt)
     return result.unique().scalars().all()
 
 
-async def get_movie(db: AsyncSession, movie_id: int) -> models.MovieDB | None:
-    """Retrieve a movie by ID."""
-    return await crud.get_movie_by_id(db, movie_id)
+async def get_movie(
+    db: AsyncSession,
+    movie_id: int,
+) -> models.MovieDB | None:
+    """Retrieve a movie with eager-loaded relations."""
+    stmt = (
+        select(models.MovieDB)
+        .where(models.MovieDB.id == movie_id)
+        .options(
+            selectinload(models.MovieDB.genres),
+            selectinload(models.MovieDB.directors),
+            selectinload(models.MovieDB.stars),
+            selectinload(models.MovieDB.certification),
+        )
+    )
+
+    result = await db.execute(stmt)
+
+    return result.scalar_one_or_none()
 
 
 async def create_genre(
@@ -121,10 +146,15 @@ async def create_genre(
     return await crud.create_genre(db, genre)
 
 
-async def list_genres(db: AsyncSession, filters) -> list[models.GenreDB]:
-    """List genres with optional filtering."""
+async def list_genres(
+    db: AsyncSession,
+    filters,
+    pagination: PaginationParams,
+) -> list[models.GenreDB]:
+    """List genres with filtering and pagination."""
     stmt = select(models.GenreDB)
     stmt = filters.filter(stmt)
+    stmt = stmt.limit(pagination.limit).offset(pagination.offset)
 
     result = await db.execute(stmt)
     return result.scalars().all()
@@ -134,12 +164,20 @@ async def get_genre(
     db: AsyncSession,
     genre_id: int,
 ) -> models.GenreDB | None:
-    """Retrieve a genre by ID."""
-    return await crud.get_genre_by_id(db, genre_id)
+    """Retrieve genre with movies eager-loaded."""
+    stmt = (
+        select(models.GenreDB)
+        .where(models.GenreDB.id == genre_id)
+        .options(selectinload(models.GenreDB.movies))
+    )
+
+    result = await db.execute(stmt)
+
+    return result.scalar_one_or_none()
 
 
 async def delete_genre(db: AsyncSession, genre_id: int) -> None:
-    """Delete a genre if it is not used by movies."""
+    """Delete a genre if unused."""
     genre = await crud.get_genre_with_movies(db, genre_id)
     if not genre:
         raise GenreNotFoundException()
@@ -152,12 +190,14 @@ async def create_certification(
     db: AsyncSession,
     data: schemas.CertificationCreateSchema,
 ) -> models.CertificationDB:
-    """Create a certification record."""
+    """Create a certification."""
     cert = models.CertificationDB(name=data.name)
     return await crud.create_certification(db, cert)
 
 
-async def list_certifications(db: AsyncSession) -> list[models.CertificationDB]:
+async def list_certifications(
+    db: AsyncSession,
+) -> list[models.CertificationDB]:
     """Return all certifications."""
     return await crud.list_certifications(db)
 
