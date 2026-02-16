@@ -1,166 +1,13 @@
 # 🎬 Online Cinema API
 
-A production-ready **Online Cinema backend platform** built with **FastAPI**, designed to provide a full movie marketplace experience including authentication, movie catalog management, shopping cart, ordering system, and Stripe-based payments.
+A backend service for an Online Cinema platform built with **FastAPI**.
 
-The project follows clean architecture principles, role-based access control, token-based authentication (JWT), background task processing with Celery, and containerized deployment using Docker.
-
----
-
-# 📌 Table of Contents
-
-* [Overview](#overview)
-* [Architecture](#architecture)
-* [Core Features](#core-features)
-* [Tech Stack](#tech-stack)
-* [Project Structure](#project-structure)
-* [Authentication & Authorization](#authentication--authorization)
-* [Movies Module](#movies-module)
-* [Cart Module](#cart-module)
-* [Orders Module](#orders-module)
-* [Payments Module](#payments-module)
-* [Background Tasks (Celery)](#background-tasks-celery)
-* [Docker Setup](#docker-setup)
-* [Poetry Dependency Management](#poetry-dependency-management)
-* [Database & Migrations](#database--migrations)
-* [Testing](#testing)
-* [CI/CD](#cicd)
-* [API Documentation](#api-documentation)
+The system provides a complete movie marketplace workflow including authentication, movie catalog management, shopping cart functionality, order processing, and Stripe-based payments.
+The application is modular, Dockerized, and uses Celery for background processing.
 
 ---
 
-# 📖 Overview
-
-Online Cinema is a backend service that allows users to:
-
-* Register and activate accounts via email
-* Authenticate using JWT tokens
-* Browse and search movies
-* Like, comment, and rate movies
-* Add movies to cart and purchase them
-* Pay via Stripe
-* Receive email notifications
-* Manage roles (User, Moderator, Admin)
-
-The system enforces strict business logic and validation to ensure data consistency and secure transactions.
-
----
-
-# 🏗 Architecture
-
-The project follows a modular architecture with separation of concerns:
-
-* `accounts` — Authentication, profiles, roles, tokens
-* `movies` — Movie catalog, filtering, ratings
-* `cart` — Shopping cart logic
-* `orders` — Order creation & management
-* `payments` — Stripe integration
-* `security` — JWT handling and password hashing
-* `core` — Database, configuration, shared utilities
-
-It uses:
-
-* Service layer pattern
-* Dependency injection
-* Pydantic schemas
-* SQLAlchemy ORM
-* Async support where applicable
-
----
-
-# 🚀 Core Features
-
-## 👤 Authentication & Account Management
-
-* Email-based registration
-* Email activation (24h expiration)
-* Resend activation link
-* Password reset via email token
-* JWT authentication (access + refresh)
-* Secure logout (refresh token revocation)
-* Password complexity validation
-* Celery-beat cleanup of expired tokens
-
-### User Roles
-
-* **USER** – Basic access to platform
-* **MODERATOR** – Manage movies & content
-* **ADMIN** – Full access, manage users & roles
-
----
-
-## 🎥 Movies Module
-
-Users can:
-
-* Browse movies (pagination)
-* View detailed descriptions
-* Search (title, description, actor, director)
-* Filter (year, IMDb rating, genre)
-* Sort (price, popularity, release date)
-* Like / dislike movies
-* Rate movies (10-point scale)
-* Comment and reply
-* Add/remove favorites
-
-Moderators can:
-
-* Create / Update / Delete movies
-* Manage genres, stars, directors
-* Prevent deletion of purchased movies
-
----
-
-## 🛒 Cart Module
-
-* Add movies (only if not purchased)
-* Prevent duplicate entries
-* Remove movies
-* Clear cart
-* View cart details
-* Validate purchase availability
-
-Each user has exactly one cart.
-
----
-
-## 📦 Orders Module
-
-* Create order from cart
-* Prevent duplicate pending orders
-* Validate movie availability
-* Cancel order before payment
-* Track order status:
-
-  * `pending`
-  * `paid`
-  * `canceled`
-
-Each order stores historical price snapshots.
-
----
-
-## 💳 Payments Module
-
-Integrated with **Stripe**.
-
-Features:
-
-* Secure payment processing
-* Webhook validation
-* Store external payment ID
-* Payment status tracking:
-
-  * `successful`
-  * `canceled`
-  * `refunded`
-* Email confirmation after payment
-* Payment history per user
-
-All financial records preserve historical pricing.
-
----
-
-# ⚙ Tech Stack
+# 🚀 Technology Stack
 
 * **FastAPI**
 * **SQLAlchemy**
@@ -168,21 +15,19 @@ All financial records preserve historical pricing.
 * **Redis**
 * **Celery + Celery Beat**
 * **Stripe**
-* **MinIO (S3 compatible storage)**
-* **Poetry**
+* **MinIO (S3-compatible storage)**
+* **Alembic (database migrations)**
+* **uv (dependency management)**
 * **Docker & Docker Compose**
-* **GitHub Actions**
-* **Pytest**
-* **Alembic**
-* **JWT (Access + Refresh)**
 
 ---
 
-# 📁 Project Structure
+# 🏗 Project Architecture
+
+The project follows a modular, domain-based structure:
 
 ```
 src/
-│
 ├── accounts/
 ├── movies/
 ├── cart/
@@ -190,79 +35,56 @@ src/
 ├── payments/
 ├── security/
 ├── core/
-│
-docker/
-alembic/
-commands/
-configs/
 ```
 
-The project is organized into domain-based modules for scalability and maintainability.
+Each module encapsulates its models, schemas, services, and routes to ensure scalability and maintainability.
 
 ---
 
-# 🐳 Docker Setup
+# ⚙ Installation & Running
 
-Run the entire system with one command:
+## Using uv
+
+Install dependencies:
+
+```bash
+uv sync
+```
+
+Run the application:
+
+```bash
+uv run python -m src.main
+```
+
+---
+
+## Using Docker (Recommended)
+
+Development:
 
 ```bash
 docker compose -f docker-compose.dev.yml up --build
 ```
 
-Services include:
-
-* FastAPI application
-* PostgreSQL
-* Redis
-* Celery worker
-* Celery beat
-* MinIO
-
-For production:
+Production:
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d
 ```
 
----
+The environment includes:
 
-# 📦 Poetry Dependency Management
-
-Install dependencies:
-
-```bash
-poetry install
-```
-
-Activate virtual environment:
-
-```bash
-poetry shell
-```
-
-Add dependency:
-
-```bash
-poetry add package-name
-```
-
-Dependencies are defined in:
-
-```
-pyproject.toml
-```
+* FastAPI application
+* PostgreSQL
+* Redis
+* Celery Worker
+* Celery Beat
+* MinIO
 
 ---
 
-# 🗄 Database & Migrations
-
-The project uses **Alembic** for migrations.
-
-Create migration:
-
-```bash
-alembic revision --autogenerate -m "message"
-```
+# 🗄 Database
 
 Apply migrations:
 
@@ -270,23 +92,144 @@ Apply migrations:
 alembic upgrade head
 ```
 
+Database management commands:
+
+```bash
+# Seed roles, dummy users, and movies
+uv run -m src.db_manager.run --all
+
+# Seed only movies
+uv run -m src.db_manager.run --movies
+
+# Create roles and superuser
+uv run -m src.db_manager.run --su
+```
+
 ---
 
-# 🔁 Background Tasks (Celery)
+# 👤 Authentication & Authorization
 
-Used for:
+## Features
 
-* Email sending
-* Token cleanup
-* Scheduled tasks (celery-beat)
+* Email-based registration
+* Account activation via token (expires in 24 hours)
+* Resend activation link
+* Password reset via email token
+* JWT authentication (access & refresh tokens)
+* Refresh token storage and revocation
+* Secure logout
+* Role-based access control
 
-Run worker:
+## User Roles
+
+* **USER** – Standard platform access
+* **MODERATOR** – Manage movies and catalog data
+* **ADMIN** – Full access including user management
+
+---
+
+# 🔐 Access Control Rules
+
+### Public Access (No Authentication Required)
+
+* Browse movie catalog
+* View movie details
+* Search, filter, and sort movies
+* View genres
+
+### Authentication Required
+
+* Add movies to cart
+* Manage cart
+* Write comments
+* Rate movies
+* Add to favorites
+* Create orders
+* Make payments
+* View order and payment history
+
+If a protected endpoint is accessed without a valid JWT token, the system returns:
+
+```
+401 Unauthorized
+```
+
+---
+
+# 🛒 Shopping Cart
+
+* Each authenticated user has exactly **one cart**
+* Cart is created automatically:
+
+  * after registration
+  * or lazily on the first add-to-cart action
+* Guest carts are **not supported**
+
+### Cart Validation Rules
+
+* The same movie cannot be added twice
+* Purchased movies cannot be added again
+* Cart operations require authentication
+
+---
+
+# 📦 Orders
+
+Users can:
+
+* Create an order from the cart
+* View order history
+* Cancel an order before payment
+
+Order statuses:
+
+* `pending`
+* `paid`
+* `canceled`
+
+### Order Guarantees
+
+* Cart must not be empty
+* Purchased movies are excluded
+* Total amount is revalidated before payment
+* Historical pricing is stored in order items
+
+---
+
+# 💳 Payments
+
+Integrated with **Stripe**.
+
+Features:
+
+* Payment session creation
+* Stripe webhook validation
+* Payment status tracking:
+
+  * `successful`
+  * `canceled`
+  * `refunded`
+* External payment ID storage
+* Email confirmation after successful payment
+
+All payments preserve historical pricing data.
+
+---
+
+# 🔁 Background Tasks
+
+Celery is used for:
+
+* Sending emails
+* Removing expired activation tokens
+* Removing expired password reset tokens
+* Scheduled background jobs (Celery Beat)
+
+Run manually:
 
 ```bash
 celery -A src.storages.celery_app worker --loglevel=info
 ```
-
-Run beat scheduler:
 
 ```bash
 celery -A src.storages.celery_app beat --loglevel=info
@@ -296,99 +239,35 @@ celery -A src.storages.celery_app beat --loglevel=info
 
 # 🧪 Testing
 
-The project includes:
-
-### Unit Tests
-
-* Validation logic
-* Utility functions
-* Business rules
-
-### Integration Tests
-
-* DB interaction
-* JWT workflows
-* Authentication
-
-### Functional Tests
-
-* Registration flow
-* Movie browsing
-* Cart → Order → Payment flow
-
 Run tests:
 
 ```bash
 pytest
 ```
 
----
+The test suite includes:
 
-# 🔄 CI/CD
-
-GitHub Actions pipeline includes:
-
-* flake8 / black (linting)
-* mypy (type checking)
-* pytest (tests)
-* coverage report
-* Deployment to AWS EC2 (after merge)
+* Unit tests
+* Integration tests
+* Functional scenarios
 
 ---
 
 # 📚 API Documentation
 
-* Built using **OpenAPI 3**
-* Swagger UI available at:
+Available at:
 
-```
-/docs
-```
-
-* ReDoc available at:
-
-```
-/redoc
-```
-
-Access can be restricted to authorized users.
+* Swagger UI → `/docs`
+* ReDoc → `/redoc`
 
 ---
 
-# 🔐 Security
+# 🔐 Security Considerations
 
 * Password hashing
 * JWT authentication
-* Token revocation
-* Role-based access control
-* Stripe webhook verification
-* Strong validation rules
-* Unique constraints and DB-level integrity
-
----
-
-# 📌 Future Improvements
-
-* Recommendation system
-* Watch history tracking
-* Subscription plans
-* Partial payments
-* Caching layer optimization
-* Performance profiling
-
----
-
-# 👨‍💻 Author
-
-Backend project for an Online Cinema platform.
-Designed for production-level architecture, scalability, and clean separation of concerns.
-
----
-
-If you'd like, I can now:
-
-* Make it **more enterprise-style**
-* Make it **simpler (for portfolio)**
-* Add **architecture diagram**
-* Or format it specifically for GitHub with badges**
-
+* Refresh token revocation
+* Role-based authorization
+* Stripe webhook validation
+* Token expiration enforcement
+* Database-level integrity constraints
