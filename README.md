@@ -1,9 +1,8 @@
 # 🎬 Online Cinema API
 
-A backend service for an Online Cinema platform built with **FastAPI**.
+Online Cinema API is a backend service built with **FastAPI** that provides a movie marketplace workflow including authentication, movie catalog management, shopping cart functionality, order processing, and Stripe-based payments.
 
-The system provides a complete movie marketplace workflow including authentication, movie catalog management, shopping cart functionality, order processing, and Stripe-based payments.
-The application is modular, Dockerized, and uses Celery for background processing.
+The application follows a modular architecture, uses Celery for background processing, and is containerized with Docker.
 
 ---
 
@@ -22,9 +21,9 @@ The application is modular, Dockerized, and uses Celery for background processin
 
 ---
 
-# 🏗 Project Architecture
+# 🏗 Architecture
 
-The project follows a modular, domain-based structure:
+The project follows a domain-based modular structure:
 
 ```
 src/
@@ -37,43 +36,27 @@ src/
 ├── core/
 ```
 
-Each module encapsulates its models, schemas, services, and routes to ensure scalability and maintainability.
+Each module encapsulates its models, schemas, services, and routes.
 
 ---
 
-# ⚙ Installation & Running
+# ⚙ Running the Project
 
-## Using uv
+The supported way to run the project is via Docker.
 
-Install dependencies:
-
-```bash
-uv sync
-```
-
-Run the application:
-
-```bash
-uv run python -m src.main
-```
-
----
-
-## Using Docker (Recommended)
-
-Development:
+### Development
 
 ```bash
 docker compose -f docker-compose.dev.yml up --build
 ```
 
-Production:
+### Production
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-The environment includes:
+The Docker environment includes:
 
 * FastAPI application
 * PostgreSQL
@@ -92,16 +75,19 @@ Apply migrations:
 alembic upgrade head
 ```
 
-Database management commands:
+Seed database:
 
 ```bash
-# Seed roles, dummy users, and movies
 uv run -m src.db_manager.run --all
+```
 
-# Seed only movies
+Available management commands:
+
+```bash
+# seed only movies
 uv run -m src.db_manager.run --movies
 
-# Create roles and superuser
+# create roles and superuser
 uv run -m src.db_manager.run --su
 ```
 
@@ -112,64 +98,63 @@ uv run -m src.db_manager.run --su
 ## Features
 
 * Email-based registration
-* Account activation via token (expires in 24 hours)
+* Account activation via token (24-hour expiration)
 * Resend activation link
 * Password reset via email token
 * JWT authentication (access & refresh tokens)
 * Refresh token storage and revocation
-* Secure logout
+* Logout invalidates refresh token
 * Role-based access control
 
-## User Roles
+## Roles
 
-* **USER** – Standard platform access
-* **MODERATOR** – Manage movies and catalog data
-* **ADMIN** – Full access including user management
+* **USER**
+* **MODERATOR**
+* **ADMIN**
+
+Moderators can manage movie catalog data.
+Admins can manage users and change roles.
 
 ---
 
-# 🔐 Access Control Rules
+# 🎥 Movies Module
 
-### Public Access (No Authentication Required)
+Users can:
 
-* Browse movie catalog
+* Browse movies (pagination)
 * View movie details
-* Search, filter, and sort movies
-* View genres
+* Search by title, description, actor, or director
+* Filter and sort movies
+* Add movies to favorites
+* Remove movies from favorites
+* Rate movies (1–10 scale)
 
-### Authentication Required
+Moderators can:
 
-* Add movies to cart
-* Manage cart
-* Write comments
-* Rate movies
-* Add to favorites
-* Create orders
-* Make payments
-* View order and payment history
-
-If a protected endpoint is accessed without a valid JWT token, the system returns:
-
-```
-401 Unauthorized
-```
+* Create, update, delete movies
+* Manage genres, directors, and actors
+* Prevent deletion of purchased movies
 
 ---
 
 # 🛒 Shopping Cart
 
-* Each authenticated user has exactly **one cart**
-* Cart is created automatically:
+The cart is strictly bound to authenticated users.
 
-  * after registration
-  * or lazily on the first add-to-cart action
-* Guest carts are **not supported**
+* Each user has exactly **one cart**
+* Cart is created automatically (after registration or on first add action)
 
-### Cart Validation Rules
+If a non-authenticated user attempts to access cart endpoints:
+
+```
+401 Unauthorized
+```
+
+### Cart Rules
 
 * The same movie cannot be added twice
-* Purchased movies cannot be added again
-* Cart operations require authentication
+* Already purchased movies cannot be added
+* Cart must not be empty to create an order
 
 ---
 
@@ -177,7 +162,7 @@ If a protected endpoint is accessed without a valid JWT token, the system return
 
 Users can:
 
-* Create an order from the cart
+* Create an order from their cart
 * View order history
 * Cancel an order before payment
 
@@ -187,11 +172,10 @@ Order statuses:
 * `paid`
 * `canceled`
 
-### Order Guarantees
+### Business Rules
 
-* Cart must not be empty
 * Purchased movies are excluded
-* Total amount is revalidated before payment
+* Total amount is validated before payment
 * Historical pricing is stored in order items
 
 ---
@@ -209,10 +193,10 @@ Features:
   * `successful`
   * `canceled`
   * `refunded`
-* External payment ID storage
+* External Stripe transaction ID storage
 * Email confirmation after successful payment
 
-All payments preserve historical pricing data.
+Payment records preserve historical pricing.
 
 ---
 
@@ -220,20 +204,10 @@ All payments preserve historical pricing data.
 
 Celery is used for:
 
-* Sending emails
+* Sending activation emails
+* Sending password reset emails
 * Removing expired activation tokens
-* Removing expired password reset tokens
-* Scheduled background jobs (Celery Beat)
-
-Run manually:
-
-```bash
-celery -A src.storages.celery_app worker --loglevel=info
-```
-
-```bash
-celery -A src.storages.celery_app beat --loglevel=info
-```
+* Removing expired reset tokens (via Celery Beat)
 
 ---
 
@@ -245,11 +219,11 @@ Run tests:
 pytest
 ```
 
-The test suite includes:
+Includes:
 
 * Unit tests
 * Integration tests
-* Functional scenarios
+* Functional tests
 
 ---
 
@@ -257,17 +231,16 @@ The test suite includes:
 
 Available at:
 
-* Swagger UI → `/docs`
-* ReDoc → `/redoc`
+* `/docs` (Swagger UI)
 
 ---
 
-# 🔐 Security Considerations
+# 🔐 Security
 
 * Password hashing
 * JWT authentication
 * Refresh token revocation
 * Role-based authorization
-* Stripe webhook validation
-* Token expiration enforcement
+* Token expiration validation
+* Stripe webhook verification
 * Database-level integrity constraints
