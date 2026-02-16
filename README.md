@@ -1,29 +1,30 @@
 # 🎬 Online Cinema API
 
-Online Cinema API is a backend service built with **FastAPI** that provides a movie marketplace workflow including authentication, movie catalog management, shopping cart functionality, order processing, and Stripe-based payments.
+Online Cinema API is a backend service built with **FastAPI** that provides authentication, movie catalog management, shopping cart functionality, order processing, and Stripe-based payments.
 
-The application follows a modular architecture, uses Celery for background processing, and is containerized with Docker.
+The application is containerized and designed to run inside Docker.
 
 ---
 
 # 🚀 Technology Stack
 
-* **FastAPI**
-* **SQLAlchemy**
-* **PostgreSQL**
-* **Redis**
-* **Celery + Celery Beat**
-* **Stripe**
-* **MinIO (S3-compatible storage)**
-* **Alembic (database migrations)**
-* **uv (dependency management)**
-* **Docker & Docker Compose**
+* FastAPI
+* SQLAlchemy
+* PostgreSQL
+* Redis
+* Celery + Celery Beat
+* Stripe
+* MinIO
+* Nginx (reverse proxy)
+* Alembic (via migrator)
+* uv
+* Docker & Docker Compose
 
 ---
 
 # 🏗 Architecture
 
-The project follows a domain-based modular structure:
+The project follows an **application-based modular structure**:
 
 ```
 src/
@@ -36,15 +37,37 @@ src/
 ├── core/
 ```
 
-Each module encapsulates its models, schemas, services, and routes.
+Each module contains its models, schemas, services, and routes.
 
 ---
 
 # ⚙ Running the Project
 
-The supported way to run the project is via Docker.
+The project is intended to run **inside Docker only**.
+
+All commands are executed either:
+
+* via Docker Compose wrapper
+* or directly inside the running container
+
+Local execution without Docker is not supported.
+
+
+## 🐳 Docker Environment
+
+The Docker environment differs between development and production configurations.
+
+Development configuration includes services required for local development.
+
+Production configuration includes additional infrastructure components
+such as Nginx and other deployment-specific services.
+
+The set of running containers may differ between `docker-compose.dev.yml`
+and `docker-compose.prod.yml`.
+
 
 ### Development
+
 
 ```bash
 docker compose -f docker-compose.dev.yml up --build
@@ -52,42 +75,49 @@ docker compose -f docker-compose.dev.yml up --build
 
 ### Production
 
-```bash
-docker compose -f docker-compose.prod.yml up -d
-```
-
-The Docker environment includes:
-
-* FastAPI application
-* PostgreSQL
-* Redis
-* Celery Worker
-* Celery Beat
-* MinIO
+The production configuration is intended for deployment only.
+It requires valid SSL certificates and proper server configuration.
+It is not designed to be run locally.
 
 ---
 
-# 🗄 Database
+# 🌍 Environment Configuration
 
-Apply migrations:
+The project requires a `.env` file based on `.env.sample`.
 
-```bash
-alembic upgrade head
-```
+Before running the project:
 
-Seed database:
+cp .env.sample .env
+
+Without a properly configured `.env` file,
+the development environment will not start.
+
+# 🔁 Reverse Proxy
+
+The application runs behind **Nginx**.
+
+Nginx is configured as a reverse proxy and handles routing for the application.
+
+Production configuration differs from development configuration.
+
+---
+
+# 🗄 Database & Migrations
+
+Migrations are executed through the project migrator inside Docker.
+
+Manual Alembic execution is not required.
+
+Database seeding:
 
 ```bash
 uv run -m src.db_manager.run --all
 ```
 
-Available management commands:
+Other available commands:
 
 ```bash
-# seed only movies
 uv run -m src.db_manager.run --movies
-
-# create roles and superuser
 uv run -m src.db_manager.run --su
 ```
 
@@ -97,64 +127,56 @@ uv run -m src.db_manager.run --su
 
 ## Features
 
-* Email-based registration
-* Account activation via token (24-hour expiration)
+* Email registration
+* Account activation (24h expiration)
 * Resend activation link
 * Password reset via email token
 * JWT authentication (access & refresh tokens)
-* Refresh token storage and revocation
-* Logout invalidates refresh token
+* Refresh token revocation on logout
 * Role-based access control
 
 ## Roles
 
-* **USER**
-* **MODERATOR**
-* **ADMIN**
+* USER
+* MODERATOR
+* ADMIN
 
-Moderators can manage movie catalog data.
-Admins can manage users and change roles.
+Authorization is required only for protected endpoints.
+The application does not enforce global authorization at startup.
 
 ---
 
-# 🎥 Movies Module
+# 🎥 Movies
 
 Users can:
 
 * Browse movies (pagination)
 * View movie details
-* Search by title, description, actor, or director
-* Filter and sort movies
-* Add movies to favorites
-* Remove movies from favorites
-* Rate movies (1–10 scale)
+* Search
+* Filter
+* Sort
+* Add to favorites
+* Rate movies
 
 Moderators can:
 
-* Create, update, delete movies
-* Manage genres, directors, and actors
+* Create / update / delete movies
+* Manage genres, actors, directors
 * Prevent deletion of purchased movies
+
+(Comments are not implemented.)
 
 ---
 
 # 🛒 Shopping Cart
 
-The cart is strictly bound to authenticated users.
+The cart can be used without immediate authentication.
 
-* Each user has exactly **one cart**
-* Cart is created automatically (after registration or on first add action)
+- Before login, cart data is stored in cookies.
+- After successful authentication, the cart is attached to the user account.
+- Once attached, it becomes persistent and linked to the user.
 
-If a non-authenticated user attempts to access cart endpoints:
-
-```
-401 Unauthorized
-```
-
-### Cart Rules
-
-* The same movie cannot be added twice
-* Already purchased movies cannot be added
-* Cart must not be empty to create an order
+Cart operations require authentication only for order creation.
 
 ---
 
@@ -162,41 +184,33 @@ If a non-authenticated user attempts to access cart endpoints:
 
 Users can:
 
-* Create an order from their cart
+* Create orders from cart
 * View order history
-* Cancel an order before payment
+* Cancel orders before payment
 
 Order statuses:
 
-* `pending`
-* `paid`
-* `canceled`
+* pending
+* paid
+* canceled
 
-### Business Rules
+Business rules:
 
+* Cart must not be empty
 * Purchased movies are excluded
-* Total amount is validated before payment
-* Historical pricing is stored in order items
+* Order items store historical price
 
 ---
 
 # 💳 Payments
 
-Integrated with **Stripe**.
-
-Features:
+Stripe integration includes:
 
 * Payment session creation
-* Stripe webhook validation
-* Payment status tracking:
-
-  * `successful`
-  * `canceled`
-  * `refunded`
-* External Stripe transaction ID storage
+* Webhook validation
+* Payment status tracking
+* External payment ID storage
 * Email confirmation after successful payment
-
-Payment records preserve historical pricing.
 
 ---
 
@@ -206,32 +220,25 @@ Celery is used for:
 
 * Sending activation emails
 * Sending password reset emails
-* Removing expired activation tokens
-* Removing expired reset tokens (via Celery Beat)
+* Removing expired tokens
 
 ---
 
 # 🧪 Testing
 
-Run tests:
+The project includes:
 
-```bash
-pytest
-```
+- Unit tests
 
-Includes:
-
-* Unit tests
-* Integration tests
-* Functional tests
-
+Integration and end-to-end tests are not implemented.
 ---
 
 # 📚 API Documentation
 
 Available at:
 
-* `/docs` (Swagger UI)
+* `/docs`
+* `/redoc`
 
 ---
 
@@ -240,7 +247,6 @@ Available at:
 * Password hashing
 * JWT authentication
 * Refresh token revocation
-* Role-based authorization
-* Token expiration validation
+* Role-based access control
 * Stripe webhook verification
-* Database-level integrity constraints
+* Token expiration validation
