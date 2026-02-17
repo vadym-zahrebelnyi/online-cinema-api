@@ -6,7 +6,14 @@ from src.notifications.emails import EmailService
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(name="send_payment_confirmation_email")
+@celery_app.task(
+    name="send_payment_confirmation_email",
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_backoff_max=600,
+    max_retries=5,
+    time_limit=60,
+)
 def send_payment_confirmation_email_task(email: str, amount: str, order_id: int):
     """
     Background task to send a payment confirmation email to the user.
@@ -27,9 +34,6 @@ def send_payment_confirmation_email_task(email: str, amount: str, order_id: int)
             but does not propagate it to the caller (fail-safe).
     """
     logger.info(f"Starting email task for Order #{order_id}")
-    try:
-        email_service = EmailService()
-        email_service.send_payment_success_email(email, amount, order_id)
-        logger.info(f"Email sent successfully to {email}")
-    except Exception as e:
-        logger.error(f"Failed to send payment email: {e}")
+    email_service = EmailService()
+    email_service.send_payment_success_email(email, amount, order_id)
+    logger.info(f"Email sent successfully to {email}")

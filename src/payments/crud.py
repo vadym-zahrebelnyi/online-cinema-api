@@ -1,6 +1,8 @@
+import logging
 from typing import Sequence
 
 from sqlalchemy import desc, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -8,6 +10,8 @@ from src.orders.models import OrderDB, OrderItemDB, OrderStatusEnum
 
 from .filters import PaymentFilter
 from .models import PaymentDB, PaymentItemDB, PaymentStatusEnum
+
+logger = logging.getLogger(__name__)
 
 
 class PaymentCRUD:
@@ -39,30 +43,36 @@ class PaymentCRUD:
         Returns:
             PaymentDB: The newly created and persisted payment record.
         """
-        new_payment = PaymentDB(
-            user_id=user_id,
-            order_id=order.id,
-            amount=order.total_amount,
-            status=PaymentStatusEnum.PENDING,
-        )
-        db.add(new_payment)
-        await db.flush()
-
-        payment_items = [
-            PaymentItemDB(
-                payment_id=new_payment.id,
-                order_item_id=item.id,
-                price_at_payment=item.price_at_order,
+        try:
+            new_payment = PaymentDB(
+                user_id=user_id,
+                order_id=order.id,
+                amount=order.total_amount,
+                status=PaymentStatusEnum.PENDING,
             )
-            for item in order.items
-        ]
+            db.add(new_payment)
+            await db.flush()
 
-        if payment_items:
-            db.add_all(payment_items)
+            payment_items = [
+                PaymentItemDB(
+                    payment_id=new_payment.id,
+                    order_item_id=item.id,
+                    price_at_payment=item.price_at_order,
+                )
+                for item in order.items
+            ]
 
-        await db.commit()
-        await db.refresh(new_payment)
-        return new_payment
+            if payment_items:
+                db.add_all(payment_items)
+
+            await db.commit()
+            await db.refresh(new_payment)
+            return new_payment
+
+        except SQLAlchemyError as e:
+            await db.rollback()
+            logger.error(f"Error creating payment: {e}")
+            raise e
 
     async def get_by_session_id(
         self, db: AsyncSession, session_id: str
@@ -103,12 +113,18 @@ class PaymentCRUD:
         Returns:
             PaymentDB | None: The updated payment record, or None if the ID was invalid.
         """
-        payment = await db.get(PaymentDB, payment_id)
-        if payment:
-            payment.external_payment_id = session_id
-            await db.commit()
-            await db.refresh(payment)
-        return payment
+        try:
+            payment = await db.get(PaymentDB, payment_id)
+            if payment:
+                payment.external_payment_id = session_id
+                await db.commit()
+                await db.refresh(payment)
+            return payment
+
+        except SQLAlchemyError as e:
+            await db.rollback()
+            logger.error(f"Error setting external ID for payment {payment_id}: {e}")
+            raise e
 
     async def _get_payment_with_lock(
         self, db: AsyncSession, payment_id: int
@@ -151,22 +167,28 @@ class PaymentCRUD:
         Returns:
             PaymentDB: The updated payment record.
         """
-        locked_payment = await self._get_payment_with_lock(db, payment.id)
+        try:
+            locked_payment = await self._get_payment_with_lock(db, payment.id)
 
-        if not locked_payment:
-            return payment
+            if not locked_payment:
+                return payment
 
-        if locked_payment.status == PaymentStatusEnum.SUCCESSFUL:
+            if locked_payment.status == PaymentStatusEnum.SUCCESSFUL:
+                return locked_payment
+
+            locked_payment.status = PaymentStatusEnum.SUCCESSFUL
+
+            if locked_payment.order:
+                locked_payment.order.status = OrderStatusEnum.PAID
+
+            await db.commit()
+            await db.refresh(locked_payment)
             return locked_payment
 
-        locked_payment.status = PaymentStatusEnum.SUCCESSFUL
-
-        if locked_payment.order:
-            locked_payment.order.status = OrderStatusEnum.PAID
-
-        await db.commit()
-        await db.refresh(locked_payment)
-        return locked_payment
+        except SQLAlchemyError as e:
+            await db.rollback()
+            logger.error(f"Error confirming payment {payment.id}: {e}")
+            raise e
 
     async def cancel_payment(self, db: AsyncSession, payment: PaymentDB) -> PaymentDB:
         """
@@ -181,24 +203,21 @@ class PaymentCRUD:
         Returns:
             PaymentDB: The updated payment record with items reloaded for display.
         """
-        locked_payment = await self._get_payment_with_lock(db, payment.id)
+        try:
+            locked_payment = await self._get_payment_with_lock(db, payment.id)
 
-        if not locked_payment:
-            return payment
+            if not locked_payment:
+                return payment
 
-        locked_payment.status = PaymentStatusEnum.CANCELED
-        await db.commit()
-        stmt = (
-            select(PaymentDB)
-            .where(PaymentDB.id == payment.id)
-            .options(
-                selectinload(PaymentDB.payment_items)
-                .selectinload(PaymentItemDB.order_item)
-                .selectinload(OrderItemDB.movie)
-            )
-        )
-        result = await db.execute(stmt)
-        return result.scalar_one()
+            locked_payment.status = PaymentStatusEnum.CANCELED
+            await db.commit()
+
+            return await self._reload_payment_with_items(db, payment.id)
+
+        except SQLAlchemyError as e:
+            await db.rollback()
+            logger.error(f"Error canceling payment {payment.id}: {e}")
+            raise e
 
     async def mark_refund_requested(
         self, db: AsyncSession, payment: PaymentDB
@@ -216,10 +235,15 @@ class PaymentCRUD:
         Returns:
             PaymentDB: The updated payment with full item details reloaded.
         """
-        payment.status = PaymentStatusEnum.REFUND_REQUESTED
-        await db.commit()
+        try:
+            payment.status = PaymentStatusEnum.REFUND_REQUESTED
+            await db.commit()
 
-        return await self._reload_payment_with_items(db, payment.id)
+            return await self._reload_payment_with_items(db, payment.id)
+
+        except SQLAlchemyError as e:
+            await db.rollback()
+            raise e
 
     async def refund_payment(self, db: AsyncSession, payment: PaymentDB) -> PaymentDB:
         """
@@ -236,18 +260,24 @@ class PaymentCRUD:
         Returns:
             PaymentDB: The updated payment record.
         """
-        locked_payment = await self._get_payment_with_lock(db, payment.id)
+        try:
+            locked_payment = await self._get_payment_with_lock(db, payment.id)
 
-        if not locked_payment:
-            return payment
+            if not locked_payment:
+                return payment
 
-        locked_payment.status = PaymentStatusEnum.REFUNDED
-        if locked_payment.order:
-            locked_payment.order.status = OrderStatusEnum.CANCELLED
+            locked_payment.status = PaymentStatusEnum.REFUNDED
+            if locked_payment.order:
+                locked_payment.order.status = OrderStatusEnum.CANCELLED
 
-        await db.commit()
+            await db.commit()
 
-        return await self._reload_payment_with_items(db, payment.id)
+            return await self._reload_payment_with_items(db, payment.id)
+
+        except SQLAlchemyError as e:
+            await db.rollback()
+            logger.error(f"Error refunding payment {payment.id}: {e}")
+            raise e
 
     async def _reload_payment_with_items(
         self, db: AsyncSession, payment_id: int

@@ -20,7 +20,6 @@ def crud(mock_db: AsyncMock) -> CartCRUD:
 
 @pytest.mark.asyncio
 async def test_get_cart_by_user(crud: CartCRUD, mock_db: AsyncMock):
-    # Прості мокові дані
     movie = MovieDB(id=1, name="Test Movie", year=2020, price=Decimal("10.00"))
     cart_item = AsyncMock()
     cart_item.movie = movie

@@ -98,3 +98,4 @@ pyrightconfig.json
 configs/certbot/*/*
 !configs/certbot/*/.gitkeep
 
+.DS_Store
